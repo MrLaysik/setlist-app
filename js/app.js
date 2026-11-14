@@ -3,7 +3,9 @@
 import { $, h, fmtTime, plural, toast } from "./ui.js";
 import { openDb, getAllSongs, getPdfInfo, getMeta, getAllSetlists, saveSetlist } from "./db.js";
 import { initSongSheet, openSongSheet } from "./song-sheet.js";
-import { openChartView, closeChartView, reloadChartView, currentChartSongId } from "./chart-view.js";
+import {
+  initPerform, openPerform, closePerform, reloadCurrentSong, songDeleted,
+} from "./perform.js";
 import { initSettings, openSettings } from "./settings.js";
 import { backupReminder } from "./backup.js";
 import {
@@ -11,7 +13,7 @@ import {
 } from "./setlist-view.js";
 import { askName } from "./setlist-dialogs.js";
 
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.4.0";
 const TAB_KEY = "setlist.tab";
 
 const state = {
@@ -23,7 +25,7 @@ const state = {
   meta: null,
   reminderSnoozed: false, // "Later" hides the backup reminder until the app is reopened
   setlistId: null,        // the setlist being shown, if any
-  chartBack: "library",   // where the chart view's back button goes
+  performBack: "library", // where the performance view's back button goes
 };
 
 function isInstalled() {
@@ -48,39 +50,47 @@ function setTab(t) {
 
 // ---------- Views ----------
 
-const VIEWS = ["library", "setlistView", "settings", "chartView"];
+const VIEWS = ["library", "setlistView", "settings", "perform"];
 
 function show(view) {
   state.view = view;
   for (const v of VIEWS) $("#" + v).hidden = v !== view;
-  document.documentElement.classList.toggle("stage", view === "chartView");
+  document.documentElement.classList.toggle("stage", view === "perform");
 }
 
-/** Show a song's chart. `back` is "library" or "setlist". */
-async function goToChart(id, back = "library") {
-  state.chartBack = back;
-  $("#cvBack").setAttribute("aria-label", back === "setlist" ? "Back to setlist" : "Back to songs");
-  show("chartView");
-  await openChartView(id);
+/** Perform a setlist, starting at song `index`. */
+async function playSetlist(list, index) {
+  state.performBack = "setlist";
+  $("#pBack").setAttribute("aria-label", "Back to setlist");
+  show("perform");
+  await openPerform({ listName: list.name, songIds: list.songIds, index });
+}
+
+/** Preview one song from the Songs tab (same screen, no previous/next). */
+async function previewSong(id) {
+  state.performBack = "library";
+  $("#pBack").setAttribute("aria-label", "Back to songs");
+  show("perform");
+  await openPerform({ listName: null, songIds: [id], index: 0 });
 }
 
 function goToLibrary() {
-  closeChartView();
+  closePerform();
   state.setlistId = null;
   show("library");
   refreshLibrary();
 }
 
 async function goToSetlist(id, opts) {
-  closeChartView();
+  closePerform();
   state.setlistId = id;
   show("setlistView");
   await openSetlist(id, opts);
 }
 
-function leaveChart() {
-  if (state.chartBack === "setlist" && state.setlistId) {
-    closeChartView();
+function leavePerform() {
+  if (state.performBack === "setlist" && state.setlistId) {
+    closePerform();
     show("setlistView");
     refreshSetlist();
   } else {
@@ -189,19 +199,20 @@ async function newSetlist() {
 // ---------- Song sheet ----------
 
 function sheetOptions(song) {
-  const inChart = state.view === "chartView";
+  const inPerform = state.view === "perform";
   return {
     pdfInfo: song && song.pdfId ? state.pdfInfo.get(song.pdfId) : null,
     onSaved: () => {
       refreshLibrary();
-      if (inChart) reloadChartView();
+      if (inPerform) reloadCurrentSong();
     },
-    onDeleted: () => {
-      if (inChart) leaveChart();
-      else refreshLibrary();
+    onDeleted: async (id) => {
+      if (!inPerform) return refreshLibrary();
+      // Stay in the set if there's anything left to play.
+      if (!(await songDeleted(id))) leavePerform();
     },
-    // From the library you can jump to the chart; inside the chart you're already there.
-    onViewChart: inChart ? null : (id) => goToChart(id, "library"),
+    // From the library you can preview the chart; on stage you're already there.
+    onViewChart: inPerform ? null : previewSong,
   };
 }
 
@@ -216,24 +227,10 @@ function wire() {
   $("#tabSets").addEventListener("click", () => setTab("setlists"));
   $("#addSong").addEventListener("click", () => openSongSheet(null, sheetOptions(null)));
   $("#newSetlist").addEventListener("click", newSetlist);
-  $("#cvBack").addEventListener("click", leaveChart);
   $("#openSettings").addEventListener("click", goToSettings);
   $("#setBack").addEventListener("click", goToLibrary);
   $("#reminderGo").addEventListener("click", goToSettings);
   $("#reminderLater").addEventListener("click", () => { state.reminderSnoozed = true; renderLibrary(); });
-  $("#cvEdit").addEventListener("click", async () => {
-    const id = currentChartSongId();
-    if (!id) return;
-    // Fetch fresh so the sheet shows exactly what's stored.
-    try {
-      const [songs, pdfInfo] = await Promise.all([getAllSongs(), getPdfInfo()]);
-      state.pdfInfo = pdfInfo;
-      const song = songs.find((s) => s.id === id);
-      if (song) openSongSheet(song, sheetOptions(song));
-    } catch (err) {
-      toast(err.message, { error: true });
-    }
-  });
   // Block Safari's own pinch-zoom of the whole page, at every stage of the
   // gesture (CSS touch-action does most of the work; this is the backup).
   for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
@@ -253,13 +250,26 @@ async function start() {
     // Milestone 4 turns this into the performance view; for now it opens the chart.
     onPlay: (listId, index) => {
       const list = currentSetlist();
-      const id = list && list.songIds[index];
-      if (id) goToChart(id, "setlist");
+      if (list && list.songIds.length) playSetlist(list, index);
     },
     onBack: goToLibrary,
     onDeleted: (name) => {
       toast(`Deleted “${name}”.`);
       goToLibrary();
+    },
+  });
+  initPerform({
+    onBack: leavePerform,
+    onEditSong: async (song) => {
+      // Fetch fresh so the sheet shows exactly what's stored.
+      try {
+        const [songs, pdfInfo] = await Promise.all([getAllSongs(), getPdfInfo()]);
+        state.pdfInfo = pdfInfo;
+        const fresh = songs.find((s) => s.id === song.id);
+        if (fresh) openSongSheet(fresh, sheetOptions(fresh));
+      } catch (err) {
+        toast(err.message, { error: true });
+      }
     },
   });
   wire();

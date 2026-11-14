@@ -122,17 +122,29 @@
     </div>
   </section>
 
-  <!-- Chart view: one song's PDF as a continuous stack of pages -->
-  <section id="chartView" class="view stage" hidden aria-labelledby="cvTitle">
+  <!-- Performance view: chart, auto-scroll, previous/next. Always dark. -->
+  <section id="perform" class="view stage" hidden aria-label="Performance view">
     <header class="p-top">
-      <button class="icon-btn" id="cvBack" aria-label="Back to songs"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <div class="p-title"><h2 id="cvTitle"></h2><div class="pos" id="cvSub"></div></div>
-      <button class="icon-btn" id="cvEdit" aria-label="Song settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
+      <button class="icon-btn" id="pBack" aria-label="Back"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="p-title"><h2 id="pTitle"></h2><div class="pos" id="pPos"></div></div>
+      <button class="icon-btn" id="pEdit" aria-label="Song settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
     </header>
-    <div class="chart" id="chart">
-      <p class="chart-msg" id="cvMsg" hidden></p>
-      <div class="pages" id="pages"></div>
+    <div class="chart-area">
+      <div class="chart" id="chart">
+        <p class="chart-msg" id="pMsg" hidden></p>
+        <div class="pages" id="pages"></div>
+      </div>
     </div>
+    <div class="hint" id="hint" role="status">Swipe left or right to change songs.</div>
+    <footer class="p-bottom">
+      <button class="nav prev" id="pPrev"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="nav-txt"><span class="lbl">Previous</span><span class="nt" id="pPrevT"></span></span></button>
+      <div class="center">
+        <button class="go" id="pGo">Start</button>
+        <div class="bar" aria-hidden="true"><i id="pBar"></i></div>
+        <div class="time" id="pTime">0:00 / 0:00</div>
+      </div>
+      <button class="nav next" id="pNext"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><span class="nav-txt"><span class="lbl">Next</span><span class="nt" id="pNextT"></span></span></button>
+    </footer>
   </section>
 </div>
 
