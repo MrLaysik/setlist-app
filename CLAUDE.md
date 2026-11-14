@@ -32,7 +32,7 @@ Personal-use iPad setlist app for Brad, a drummer/vocalist who plays live gigs. 
 - `songs`: `{ id, title, bpm, lengthSec, zoom (default 1), pdfId, createdAt, updatedAt }`
 - `pdfs`: `{ id, data, fileName, pageCount }` (`data` is an ArrayBuffer, not a Blob: iPad Safari can lose Blobs stored in IndexedDB after a restart)
 - `setlists`: `{ id, name, songIds: [ordered], createdAt, updatedAt }`
-- `meta`: `{ lastBackupAt, schemaVersion }`
+- `meta`: `{ lastBackupAt, lastChangeAt, schemaVersion }` (`lastChangeAt` is stamped on every save/delete, for the "changes since last backup" reminder)
 
 Setlists reference songs by ID, so editing a song updates it everywhere and one song can appear in many setlists. Deleting a song asks for confirmation and removes it from every setlist.
 
