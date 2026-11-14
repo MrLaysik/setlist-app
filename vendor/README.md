@@ -15,3 +15,8 @@ Source: npm `pdfjs-dist@6.4.299` (https://registry.npmjs.org/pdfjs-dist/-/pdfjs-
 Source: npm `@fontsource/barlow@5.3.0`, `@fontsource/barlow-condensed@5.3.0`
 
 - Barlow 400, 500, 600 and Barlow Condensed 500, 600, 700; Latin subset, woff2
+
+## jszip/ — JSZip 3.10.2 (MIT, dual-licensed with GPLv3)
+Source: npm `jszip@3.10.2` (https://registry.npmjs.org/jszip/-/jszip-3.10.2.tgz)
+
+- `jszip.min.js` from `dist/`. Classic script (sets `window.JSZip`); loaded on demand by `js/backup.js`.

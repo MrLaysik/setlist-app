@@ -1,17 +1,21 @@
 // Setlist app entry point: views, the library, and startup.
 
 import { $, h, fmtTime, plural, toast } from "./ui.js";
-import { openDb, getAllSongs, getPdfInfo } from "./db.js";
+import { openDb, getAllSongs, getPdfInfo, getMeta } from "./db.js";
 import { initSongSheet, openSongSheet } from "./song-sheet.js";
 import { openChartView, closeChartView, reloadChartView, currentChartSongId } from "./chart-view.js";
+import { initSettings, openSettings } from "./settings.js";
+import { backupReminder } from "./backup.js";
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.2.0";
 
 const state = {
   view: "library",
   tab: "songs",       // Setlists arrive in Milestone 3
   songs: [],
   pdfInfo: new Map(), // pdfId -> { fileName, pageCount }
+  meta: null,
+  reminderSnoozed: false, // "Later" hides the backup reminder until the app is reopened
 };
 
 function isInstalled() {
@@ -27,6 +31,7 @@ function show(view) {
   state.view = view;
   $("#library").hidden = view !== "library";
   $("#chartView").hidden = view !== "chartView";
+  $("#settings").hidden = view !== "settings";
   document.documentElement.classList.toggle("stage", view === "chartView");
 }
 
@@ -41,15 +46,21 @@ function goToLibrary() {
   refreshLibrary();
 }
 
+function goToSettings() {
+  show("settings");
+  openSettings();
+}
+
 // ---------- Library ----------
 
 const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" });
 
 async function refreshLibrary() {
   try {
-    const [songs, pdfInfo] = await Promise.all([getAllSongs(), getPdfInfo()]);
+    const [songs, pdfInfo, meta] = await Promise.all([getAllSongs(), getPdfInfo(), getMeta()]);
     state.songs = songs.sort(byTitle);
     state.pdfInfo = pdfInfo;
+    state.meta = meta;
   } catch (err) {
     toast(err.message, { error: true });
   }
@@ -75,6 +86,10 @@ function renderLibrary() {
   $("#tabSongs").setAttribute("aria-selected", String(songsTab));
   $("#tabSets").setAttribute("aria-selected", String(!songsTab));
   $("#addSong").hidden = !songsTab;
+
+  const reminder = state.meta && !state.reminderSnoozed ? backupReminder(state.meta, state.songs.length) : null;
+  $("#reminder").hidden = !reminder;
+  $("#reminderText").textContent = reminder || "";
 
   const list = $("#libList");
   const empty = $("#libEmpty");
@@ -119,6 +134,10 @@ function wire() {
   $("#tabSets").addEventListener("click", () => { state.tab = "setlists"; renderLibrary(); });
   $("#addSong").addEventListener("click", () => openSongSheet(null, sheetOptions(null)));
   $("#cvBack").addEventListener("click", goToLibrary);
+  $("#openSettings").addEventListener("click", goToSettings);
+  $("#setBack").addEventListener("click", goToLibrary);
+  $("#reminderGo").addEventListener("click", goToSettings);
+  $("#reminderLater").addEventListener("click", () => { state.reminderSnoozed = true; renderLibrary(); });
   $("#cvEdit").addEventListener("click", async () => {
     const id = currentChartSongId();
     if (!id) return;
@@ -137,8 +156,12 @@ function wire() {
 }
 
 async function start() {
-  $("#version").textContent = `Version ${APP_VERSION}, ${isInstalled() ? "installed app" : "browser tab"}`;
   initSongSheet();
+  initSettings({
+    version: APP_VERSION,
+    versionText: `Version ${APP_VERSION}, running as ${isInstalled() ? "an installed app" : "a browser tab"}.`,
+    onChanged: refreshLibrary,
+  });
   wire();
   show("library");
   renderLibrary();

@@ -4,7 +4,9 @@
 //   songs    { id, title, bpm, lengthSec, zoom, pdfId, createdAt, updatedAt }
 //   pdfs     { id, data, fileName, pageCount }
 //   setlists { id, name, songIds, createdAt, updatedAt }
-//   meta     one record under the key "meta": { lastBackupAt, schemaVersion }
+//   meta     one record under the key "meta":
+//            { schemaVersion, lastBackupAt, lastChangeAt }
+//            (lastChangeAt is stamped on every save/delete, for the backup reminder)
 //
 // PDFs are stored as ArrayBuffers rather than Blobs. iPad Safari has a
 // long-standing bug where Blobs read back from IndexedDB can become
@@ -58,7 +60,8 @@ export function openDb() {
       }
       if (!db.objectStoreNames.contains("setlists")) db.createObjectStore("setlists", { keyPath: "id" });
       if (!db.objectStoreNames.contains("meta")) {
-        db.createObjectStore("meta").put({ lastBackupAt: null, schemaVersion: SCHEMA_VERSION }, "meta");
+        db.createObjectStore("meta").put(
+          { schemaVersion: SCHEMA_VERSION, lastBackupAt: null, lastChangeAt: null }, "meta");
       }
     };
     req.onsuccess = () => {
@@ -133,7 +136,7 @@ export function getPdf(id) {
  */
 export function saveSong(fields, newPdf = null) {
   const now = Date.now();
-  return run(["songs", "pdfs"], "readwrite", "saving the song", async (s) => {
+  return run(["songs", "pdfs", "meta"], "readwrite", "saving the song", async (s) => {
     const existing = fields.id ? await promisify(s.songs.get(fields.id)) : null;
     const song = {
       zoom: 1,
@@ -151,6 +154,7 @@ export function saveSong(fields, newPdf = null) {
       song.pdfId = pdfId;
     }
     s.songs.put(song);
+    await noteChange(s, now);
     return song;
   });
 }
@@ -158,7 +162,7 @@ export function saveSong(fields, newPdf = null) {
 /** Delete a song, its PDF, and remove it from every setlist. */
 export function deleteSong(id) {
   const now = Date.now();
-  return run(["songs", "pdfs", "setlists"], "readwrite", "deleting the song", async (s) => {
+  return run(["songs", "pdfs", "setlists", "meta"], "readwrite", "deleting the song", async (s) => {
     const song = await promisify(s.songs.get(id));
     if (!song) return;
     if (song.pdfId) s.pdfs.delete(song.pdfId);
@@ -169,6 +173,75 @@ export function deleteSong(id) {
         s.setlists.put({ ...list, songIds: list.songIds.filter((x) => x !== id), updatedAt: now });
       }
     }
+    await noteChange(s, now);
+  });
+}
+
+// ---------- Meta, backup and restore ----------
+
+const DEFAULT_META = { schemaVersion: SCHEMA_VERSION, lastBackupAt: null, lastChangeAt: null };
+
+/**
+ * Stamp meta.lastChangeAt inside a write transaction, so the app knows
+ * there are changes that aren't in a backup yet (including deletions).
+ */
+async function noteChange(s, now) {
+  const meta = (await promisify(s.meta.get("meta"))) || DEFAULT_META;
+  s.meta.put({ ...DEFAULT_META, ...meta, lastChangeAt: now }, "meta");
+}
+
+/** { schemaVersion, lastBackupAt, lastChangeAt } */
+export function getMeta() {
+  return run(["meta"], "readonly", "loading your settings", async (s) => ({
+    ...DEFAULT_META,
+    ...(await promisify(s.meta.get("meta"))),
+  }));
+}
+
+export function markBackedUp(at) {
+  return run(["meta"], "readwrite", "recording the backup", async (s) => {
+    const meta = (await promisify(s.meta.get("meta"))) || DEFAULT_META;
+    s.meta.put({ ...DEFAULT_META, ...meta, lastBackupAt: at }, "meta");
+  });
+}
+
+/** Everything, PDF bytes included, read as one consistent snapshot. */
+export function exportAll() {
+  return run(["songs", "pdfs", "setlists", "meta"], "readonly", "reading your library", async (s) => {
+    const [songs, pdfs, setlists, meta] = await Promise.all([
+      promisify(s.songs.getAll()),
+      promisify(s.pdfs.getAll()),
+      promisify(s.setlists.getAll()),
+      promisify(s.meta.get("meta")),
+    ]);
+    return { songs, pdfs, setlists, meta: { ...DEFAULT_META, ...meta } };
+  });
+}
+
+/** Counts for the restore confirmation, without loading PDF bytes. */
+export function getCounts() {
+  return run(["songs", "setlists"], "readonly", "reading your library", async (s) => {
+    const [songs, setlists] = await Promise.all([
+      promisify(s.songs.count()),
+      promisify(s.setlists.count()),
+    ]);
+    return { songs, setlists };
+  });
+}
+
+/**
+ * Restore: wipe everything and write the backup's records, in one
+ * transaction. If anything fails (like a full disk), nothing changes.
+ */
+export function replaceAll({ songs, pdfs, setlists, meta }) {
+  return run(["songs", "pdfs", "setlists", "meta"], "readwrite", "restoring the backup", (s) => {
+    s.songs.clear();
+    s.pdfs.clear();
+    s.setlists.clear();
+    for (const p of pdfs) s.pdfs.put(p);
+    for (const song of songs) s.songs.put(song);
+    for (const list of setlists) s.setlists.put(list);
+    s.meta.put({ ...DEFAULT_META, ...meta }, "meta");
   });
 }
 

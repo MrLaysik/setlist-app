@@ -36,12 +36,61 @@
           <button role="tab" id="tabSongs" aria-selected="true">Songs</button>
         </div>
         <button class="primary" id="addSong">Add song</button>
+        <button class="lib-icon" id="openSettings" aria-label="Settings"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
     </header>
     <div class="scroll">
+      <div class="reminder" id="reminder" role="status" hidden>
+        <p id="reminderText"></p>
+        <div class="reminder-actions">
+          <button class="ghost" id="reminderLater">Later</button>
+          <button class="primary" id="reminderGo">Back up</button>
+        </div>
+      </div>
       <ul class="rows" id="libList"></ul>
       <p class="note" id="libEmpty" hidden></p>
-      <p class="version" id="version"></p>
+    </div>
+  </section>
+
+  <!-- Settings: backup and restore -->
+  <section id="settings" class="view" hidden aria-labelledby="setTitle">
+    <header class="lib-head">
+      <div>
+        <button class="back" id="setBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Library</button>
+        <h1 class="lib-title" id="setTitle">Settings</h1>
+      </div>
+    </header>
+    <div class="scroll">
+      <section class="panel" aria-labelledby="bkTitle">
+        <h2 class="panel-title" id="bkTitle">Backup</h2>
+        <p class="panel-status" id="backupStatus"></p>
+        <p class="help">Saves one .zip file with all your songs, setlists and charts. Keep it somewhere safe, like Files or iCloud Drive.</p>
+        <div class="btn-row">
+          <button class="primary" id="backupBtn">Back up now</button>
+        </div>
+        <div class="ready" id="backupReady" hidden>
+          <p id="backupReadyText"></p>
+          <div class="btn-row">
+            <button class="primary" id="backupShare">Save or share…</button>
+            <button class="file" id="backupDownload">Download</button>
+          </div>
+        </div>
+        <p class="help" id="backupMsg" role="status"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="rsTitle">
+        <h2 class="panel-title" id="rsTitle">Restore</h2>
+        <p class="help">Replaces everything in the app with what's in a backup file. You'll see what's in it and confirm before anything changes.</p>
+        <div class="btn-row">
+          <label class="file" id="restorePick"><input id="restoreFile" type="file" accept=".zip,application/zip,application/x-zip-compressed"><span>Choose backup file</span></label>
+        </div>
+        <p class="help" id="restoreMsg" role="status"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="abTitle">
+        <h2 class="panel-title" id="abTitle">About</h2>
+        <p class="help" id="setVersion"></p>
+      </section>
     </div>
   </section>
 

@@ -138,7 +138,40 @@ svg { display: block; flex: none; }
 .row-meta span:first-child { min-width: 4.6em; text-align: right; }
 
 .note { color: var(--ink-2); font-size: 15px; line-height: 1.45; margin: 28px 0 0; max-width: 58ch; }
-.version { color: var(--ink-2); font-size: 13px; margin: 40px 0 0; opacity: .8; }
+.lib-icon {
+  width: 50px; height: 50px; display: grid; place-items: center; border-radius: 999px;
+  color: var(--ink-2); background: var(--surface-2);
+}
+.back {
+  display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-weight: 600;
+  min-height: 44px; margin: 0 0 6px -6px; padding-right: 8px;
+}
+
+/* Backup reminder on the library */
+.reminder {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap;
+  max-width: 780px; margin: 4px 0 10px; padding: 12px 12px 12px 18px;
+  border-radius: 16px; background: var(--surface);
+  border-left: 4px solid var(--accent);
+}
+.reminder p { margin: 0; font-weight: 500; line-height: 1.35; }
+.reminder-actions { display: flex; gap: 6px; }
+.reminder .primary { min-height: 44px; padding: 0 20px; font-size: 16px; }
+.reminder .ghost { min-height: 44px; }
+
+/* Settings */
+.panel { max-width: 640px; padding: 22px 0 26px; border-bottom: 1px solid var(--line); }
+.panel:last-child { border-bottom: 0; }
+.panel-title { margin: 0 0 8px; font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1; }
+.panel-status { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+.panel .help { max-width: 52ch; }
+.panel .help:empty { display: none; }
+.help.bad { color: var(--danger); }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.ready { margin-top: 18px; padding: 16px 18px; border-radius: 16px; background: var(--surface); }
+.ready p { margin: 0; line-height: 1.4; overflow-wrap: anywhere; }
+.ready .btn-row { margin-top: 12px; }
+.file:has(input:disabled) { opacity: .5; cursor: default; }
 
 .primary {
   background: var(--accent); color: var(--accent-ink); font-weight: 600;
@@ -211,7 +244,7 @@ dialog::backdrop { background: rgba(20, 24, 34, .45); }
 .chart-file.bad { color: var(--danger); }
 .file-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .file {
-  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 48px;
+  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 50px;
   padding: 0 18px; border-radius: 999px; background: var(--surface-2); font-weight: 600; cursor: pointer;
 }
 .file input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
