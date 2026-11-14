@@ -29,13 +29,14 @@
   <!-- Library: Setlists and Songs tabs -->
   <section id="library" class="view" aria-labelledby="libTitle">
     <header class="lib-head">
-      <h1 class="lib-title" id="libTitle">Songs</h1>
+      <h1 class="lib-title" id="libTitle">Setlists</h1>
       <div class="head-actions">
         <div class="seg" role="tablist" aria-label="Library">
-          <button role="tab" id="tabSets" aria-selected="false">Setlists</button>
-          <button role="tab" id="tabSongs" aria-selected="true">Songs</button>
+          <button role="tab" id="tabSets" aria-selected="true">Setlists</button>
+          <button role="tab" id="tabSongs" aria-selected="false">Songs</button>
         </div>
-        <button class="primary" id="addSong">Add song</button>
+        <button class="primary" id="newSetlist">New setlist</button>
+        <button class="primary" id="addSong" hidden>Add song</button>
         <button class="lib-icon" id="openSettings" aria-label="Settings"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
     </header>
@@ -49,6 +50,33 @@
       </div>
       <ul class="rows" id="libList"></ul>
       <p class="note" id="libEmpty" hidden></p>
+    </div>
+  </section>
+
+  <!-- One setlist: numbered running order; Edit mode for changes -->
+  <section id="setlistView" class="view" hidden aria-labelledby="slName">
+    <header class="lib-head">
+      <div class="sl-head-main">
+        <button class="back" id="slBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Library</button>
+        <h1 class="lib-title" id="slName"></h1>
+        <p class="row-sub" id="slInfo"></p>
+      </div>
+      <div class="head-actions" id="slViewActions">
+        <button class="file" id="slEdit">Edit</button>
+        <button class="primary" id="slStart">Start set</button>
+      </div>
+      <div class="head-actions" id="slEditActions" hidden>
+        <button class="file" id="slAdd">Add songs</button>
+        <button class="primary" id="slDone">Done</button>
+      </div>
+    </header>
+    <div class="scroll" id="slScroll">
+      <ol class="rows" id="slList"></ol>
+      <p class="note" id="slEmpty" hidden></p>
+      <div class="sl-extra" id="slEditExtra" hidden>
+        <button class="file" id="slRename">Rename</button>
+        <button class="ghost danger" id="slDelete">Delete setlist</button>
+      </div>
     </div>
   </section>
 
@@ -149,6 +177,37 @@
       <button type="submit" class="primary" id="sSave">Save</button>
     </div>
   </form>
+</dialog>
+
+<!-- Name a setlist (new or rename) -->
+<dialog class="sheet small" id="nameSheet" aria-labelledby="nameTitle">
+  <form id="nameForm" novalidate>
+    <h2 id="nameTitle" tabindex="-1">New setlist</h2>
+    <div class="field">
+      <label for="fName">Name</label>
+      <input class="inp" id="fName" type="text" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+    </div>
+    <p class="form-error" id="nameError" role="alert" hidden></p>
+    <div class="actions">
+      <span class="spacer"></span>
+      <button type="button" class="ghost" id="nameCancel">Cancel</button>
+      <button type="submit" class="primary" id="nameOk">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Pick songs to add to a setlist -->
+<dialog class="sheet" id="pickSheet" aria-labelledby="pickTitle">
+  <h2 id="pickTitle" tabindex="-1">Add songs</h2>
+  <p class="help">Tap songs in the order you'll play them.</p>
+  <input class="inp pick-search" id="pickSearch" type="search" placeholder="Find a song" autocomplete="off" aria-label="Find a song">
+  <ul class="pick-list" id="pickList"></ul>
+  <p class="help" id="pickEmpty" hidden></p>
+  <div class="actions">
+    <span class="spacer"></span>
+    <button type="button" class="ghost" id="pickCancel">Cancel</button>
+    <button type="button" class="primary" id="pickOk" disabled>Add songs</button>
+  </div>
 </dialog>
 
 <!-- Yes/no confirmation -->

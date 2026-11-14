@@ -1,21 +1,29 @@
 // Setlist app entry point: views, the library, and startup.
 
 import { $, h, fmtTime, plural, toast } from "./ui.js";
-import { openDb, getAllSongs, getPdfInfo, getMeta } from "./db.js";
+import { openDb, getAllSongs, getPdfInfo, getMeta, getAllSetlists, saveSetlist } from "./db.js";
 import { initSongSheet, openSongSheet } from "./song-sheet.js";
 import { openChartView, closeChartView, reloadChartView, currentChartSongId } from "./chart-view.js";
 import { initSettings, openSettings } from "./settings.js";
 import { backupReminder } from "./backup.js";
+import {
+  initSetlistView, openSetlist, refreshSetlist, startAddingSongs, describeSetlist, currentSetlist,
+} from "./setlist-view.js";
+import { askName } from "./setlist-dialogs.js";
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
+const TAB_KEY = "setlist.tab";
 
 const state = {
   view: "library",
-  tab: "songs",       // Setlists arrive in Milestone 3
+  tab: "setlists",
   songs: [],
-  pdfInfo: new Map(), // pdfId -> { fileName, pageCount }
+  setlists: [],
+  pdfInfo: new Map(),     // pdfId -> { fileName, pageCount }
   meta: null,
   reminderSnoozed: false, // "Later" hides the backup reminder until the app is reopened
+  setlistId: null,        // the setlist being shown, if any
+  chartBack: "library",   // where the chart view's back button goes
 };
 
 function isInstalled() {
@@ -25,25 +33,59 @@ function isInstalled() {
   );
 }
 
+// Remember the library tab between launches (a convenience; fine if storage is blocked).
+function loadTab() {
+  try {
+    const t = localStorage.getItem(TAB_KEY);
+    if (t === "songs" || t === "setlists") state.tab = t;
+  } catch { /* ignore */ }
+}
+function setTab(t) {
+  state.tab = t;
+  try { localStorage.setItem(TAB_KEY, t); } catch { /* ignore */ }
+  renderLibrary();
+}
+
 // ---------- Views ----------
+
+const VIEWS = ["library", "setlistView", "settings", "chartView"];
 
 function show(view) {
   state.view = view;
-  $("#library").hidden = view !== "library";
-  $("#chartView").hidden = view !== "chartView";
-  $("#settings").hidden = view !== "settings";
+  for (const v of VIEWS) $("#" + v).hidden = v !== view;
   document.documentElement.classList.toggle("stage", view === "chartView");
 }
 
-async function goToChart(id) {
+/** Show a song's chart. `back` is "library" or "setlist". */
+async function goToChart(id, back = "library") {
+  state.chartBack = back;
+  $("#cvBack").setAttribute("aria-label", back === "setlist" ? "Back to setlist" : "Back to songs");
   show("chartView");
   await openChartView(id);
 }
 
 function goToLibrary() {
   closeChartView();
+  state.setlistId = null;
   show("library");
   refreshLibrary();
+}
+
+async function goToSetlist(id, opts) {
+  closeChartView();
+  state.setlistId = id;
+  show("setlistView");
+  await openSetlist(id, opts);
+}
+
+function leaveChart() {
+  if (state.chartBack === "setlist" && state.setlistId) {
+    closeChartView();
+    show("setlistView");
+    refreshSetlist();
+  } else {
+    goToLibrary();
+  }
 }
 
 function goToSettings() {
@@ -54,11 +96,15 @@ function goToSettings() {
 // ---------- Library ----------
 
 const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" });
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
 
 async function refreshLibrary() {
   try {
-    const [songs, pdfInfo, meta] = await Promise.all([getAllSongs(), getPdfInfo(), getMeta()]);
+    const [songs, setlists, pdfInfo, meta] = await Promise.all([
+      getAllSongs(), getAllSetlists(), getPdfInfo(), getMeta(),
+    ]);
     state.songs = songs.sort(byTitle);
+    state.setlists = setlists.sort(byName);
     state.pdfInfo = pdfInfo;
     state.meta = meta;
   } catch (err) {
@@ -66,6 +112,17 @@ async function refreshLibrary() {
   }
   renderLibrary();
 }
+
+const chevron = () => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "chev");
+  svg.setAttribute("width", "22"); svg.setAttribute("height", "22"); svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none"); svg.setAttribute("stroke", "currentColor"); svg.setAttribute("stroke-width", "2.2");
+  svg.setAttribute("stroke-linecap", "round"); svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = '<path d="M9 5l7 7-7 7"/>';
+  return svg;
+};
 
 function songRow(song) {
   const info = song.pdfId && state.pdfInfo.get(song.pdfId);
@@ -80,12 +137,22 @@ function songRow(song) {
         h("span", {}, fmtTime(song.lengthSec)))));
 }
 
+function setlistRow(list, songsById) {
+  return h("li", {},
+    h("button", { className: "row", onclick: () => goToSetlist(list.id) },
+      h("div", { className: "row-main" },
+        h("div", { className: "row-title" }, list.name),
+        h("p", { className: "row-sub" }, describeSetlist(list, songsById))),
+      chevron()));
+}
+
 function renderLibrary() {
   const songsTab = state.tab === "songs";
   $("#libTitle").textContent = songsTab ? "Songs" : "Setlists";
   $("#tabSongs").setAttribute("aria-selected", String(songsTab));
   $("#tabSets").setAttribute("aria-selected", String(!songsTab));
   $("#addSong").hidden = !songsTab;
+  $("#newSetlist").hidden = songsTab;
 
   const reminder = state.meta && !state.reminderSnoozed ? backupReminder(state.meta, state.songs.length) : null;
   $("#reminder").hidden = !reminder;
@@ -98,9 +165,24 @@ function renderLibrary() {
     empty.textContent = "No songs yet. Tap Add song to add your first chart.";
     empty.hidden = state.songs.length > 0;
   } else {
-    list.replaceChildren();
-    empty.textContent = "Setlists come in a later step. For now, add your songs.";
-    empty.hidden = false;
+    const songsById = new Map(state.songs.map((s) => [s.id, s]));
+    list.replaceChildren(...state.setlists.map((l) => setlistRow(l, songsById)));
+    empty.textContent = state.songs.length
+      ? "No setlists yet. Tap New setlist to make one."
+      : "No setlists yet. Add your songs in the Songs tab first, then make a setlist here.";
+    empty.hidden = state.setlists.length > 0;
+  }
+}
+
+async function newSetlist() {
+  const name = await askName({ title: "New setlist", confirmLabel: "Create" });
+  if (!name) return;
+  try {
+    const list = await saveSetlist({ name, songIds: [] });
+    await goToSetlist(list.id, { editing: true });
+    startAddingSongs();
+  } catch (err) {
+    toast(err.message, { error: true });
   }
 }
 
@@ -115,11 +197,11 @@ function sheetOptions(song) {
       if (inChart) reloadChartView();
     },
     onDeleted: () => {
-      if (inChart) goToLibrary();
+      if (inChart) leaveChart();
       else refreshLibrary();
     },
     // From the library you can jump to the chart; inside the chart you're already there.
-    onViewChart: inChart ? null : goToChart,
+    onViewChart: inChart ? null : (id) => goToChart(id, "library"),
   };
 }
 
@@ -130,10 +212,11 @@ function editSong(song) {
 // ---------- Startup ----------
 
 function wire() {
-  $("#tabSongs").addEventListener("click", () => { state.tab = "songs"; renderLibrary(); });
-  $("#tabSets").addEventListener("click", () => { state.tab = "setlists"; renderLibrary(); });
+  $("#tabSongs").addEventListener("click", () => setTab("songs"));
+  $("#tabSets").addEventListener("click", () => setTab("setlists"));
   $("#addSong").addEventListener("click", () => openSongSheet(null, sheetOptions(null)));
-  $("#cvBack").addEventListener("click", goToLibrary);
+  $("#newSetlist").addEventListener("click", newSetlist);
+  $("#cvBack").addEventListener("click", leaveChart);
   $("#openSettings").addEventListener("click", goToSettings);
   $("#setBack").addEventListener("click", goToLibrary);
   $("#reminderGo").addEventListener("click", goToSettings);
@@ -156,11 +239,25 @@ function wire() {
 }
 
 async function start() {
+  loadTab();
   initSongSheet();
   initSettings({
     version: APP_VERSION,
     versionText: `Version ${APP_VERSION}, running as ${isInstalled() ? "an installed app" : "a browser tab"}.`,
     onChanged: refreshLibrary,
+  });
+  initSetlistView({
+    // Milestone 4 turns this into the performance view; for now it opens the chart.
+    onPlay: (listId, index) => {
+      const list = currentSetlist();
+      const id = list && list.songIds[index];
+      if (id) goToChart(id, "setlist");
+    },
+    onBack: goToLibrary,
+    onDeleted: (name) => {
+      toast(`Deleted “${name}”.`);
+      goToLibrary();
+    },
   });
   wire();
   show("library");

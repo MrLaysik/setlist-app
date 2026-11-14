@@ -8,6 +8,15 @@ export function fmtTime(sec) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** Seconds -> "m:ss", or "h:mm:ss" for an hour or more (set totals). */
+export function fmtTotal(sec) {
+  const s = Math.max(0, Math.round(sec || 0));
+  if (s < 3600) return fmtTime(s);
+  const hrs = Math.floor(s / 3600);
+  const rest = s % 3600;
+  return `${hrs}:${String(Math.floor(rest / 60)).padStart(2, "0")}:${String(rest % 60).padStart(2, "0")}`;
+}
+
 export function plural(n, one, many = one + "s") {
   return `${n} ${n === 1 ? one : many}`;
 }

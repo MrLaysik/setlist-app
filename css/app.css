@@ -87,6 +87,8 @@ button {
 button:disabled { cursor: default; opacity: .5; }
 button:focus-visible, input:focus-visible, label:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
 .stage button:focus-visible { outline-color: var(--amber); }
+/* Headings get focus only to keep the iPad keyboard from popping up; no ring needed. */
+[tabindex="-1"]:focus { outline: none; }
 svg { display: block; flex: none; }
 [hidden] { display: none !important; }
 
@@ -136,6 +138,64 @@ svg { display: block; flex: none; }
 .row-sub { color: var(--ink-2); font-size: 15px; margin: 3px 0 0; }
 .row-meta { display: flex; gap: 20px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .row-meta span:first-child { min-width: 4.6em; text-align: right; }
+
+.row .chev { color: var(--ink-2); }
+.num {
+  font-family: var(--display); font-weight: 700; font-size: 30px; color: var(--ink-2);
+  min-width: 1.4em; text-align: right; font-variant-numeric: tabular-nums;
+}
+
+/* Setlist screen */
+.sl-head-main { min-width: 0; }
+.sl-head-main .lib-title { overflow-wrap: anywhere; }
+.sl-head-main .row-sub { margin-top: 8px; font-variant-numeric: tabular-nums; }
+.sl-extra { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+
+/* Edit mode rows: remove button, number, title, length, drag handle */
+.edit-row {
+  display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 8px 0 8px 2px;
+  border-bottom: 1px solid var(--line); background: var(--bg);
+  -webkit-user-select: none; user-select: none; position: relative;
+}
+.edit-row .row-main { min-width: 0; flex: 1; }
+.rm {
+  flex: none; width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center;
+  font-size: 26px; font-weight: 600; line-height: 1; color: var(--danger); background: var(--surface-2);
+}
+.handle {
+  flex: none; width: 56px; height: 56px; display: grid; place-items: center;
+  color: var(--ink-2); cursor: grab; touch-action: none; border-radius: 12px;
+}
+.reordering .edit-row { transition: transform .16s ease; }
+.reordering .edit-row.dragging {
+  transition: none; z-index: 2; cursor: grabbing;
+  background: var(--surface); border-radius: 12px; border-bottom-color: transparent;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+}
+@media (prefers-reduced-motion: reduce) { .reordering .edit-row { transition: none; } }
+
+/* Song picker */
+.pick-search { margin-top: 14px; min-height: 46px; font-size: 17px; }
+.pick-list {
+  list-style: none; margin: 12px 0 0; padding: 0;
+  max-height: min(52vh, 460px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  border-top: 1px solid var(--line);
+}
+.pick-row {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  min-height: 58px; padding: 8px 4px; border-bottom: 1px solid var(--line);
+}
+.pick-row:disabled { opacity: .55; }
+.pick-mark {
+  flex: none; width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center;
+  box-shadow: inset 0 0 0 2px var(--line); font-weight: 700; font-size: 16px;
+  font-variant-numeric: tabular-nums; color: var(--ink-2);
+}
+.pick-row[aria-pressed="true"] .pick-mark { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.pick-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pick-title { font-weight: 600; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-sub { font-size: 14px; color: var(--ink-2); }
+.pick-meta { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
 .note { color: var(--ink-2); font-size: 15px; line-height: 1.45; margin: 28px 0 0; max-width: 58ch; }
 .lib-icon {

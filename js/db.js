@@ -177,6 +177,50 @@ export function deleteSong(id) {
   });
 }
 
+// ---------- Setlists ----------
+
+export function getAllSetlists() {
+  return run(["setlists"], "readonly", "loading your setlists", (s) => promisify(s.setlists.getAll()));
+}
+
+export function getSetlist(id) {
+  return run(["setlists"], "readonly", "loading the setlist", (s) => promisify(s.setlists.get(id)));
+}
+
+/**
+ * Create or update a setlist ({ id?, name?, songIds? }). Song IDs that no
+ * longer exist are dropped, so a setlist can never point at a deleted song.
+ */
+export function saveSetlist(fields) {
+  const now = Date.now();
+  return run(["setlists", "songs", "meta"], "readwrite", "saving the setlist", async (s) => {
+    const existing = fields.id ? await promisify(s.setlists.get(fields.id)) : null;
+    const list = {
+      name: "",
+      songIds: [],
+      createdAt: now,
+      ...existing,
+      ...fields,
+      id: (existing && existing.id) || newId(),
+      updatedAt: now,
+    };
+    const known = new Set(await promisify(s.songs.getAllKeys()));
+    list.songIds = list.songIds.filter((id) => known.has(id));
+    s.setlists.put(list);
+    await noteChange(s, now);
+    return list;
+  });
+}
+
+/** Delete a setlist. Its songs stay in the library. */
+export function deleteSetlist(id) {
+  const now = Date.now();
+  return run(["setlists", "meta"], "readwrite", "deleting the setlist", async (s) => {
+    s.setlists.delete(id);
+    await noteChange(s, now);
+  });
+}
+
 // ---------- Meta, backup and restore ----------
 
 const DEFAULT_META = { schemaVersion: SCHEMA_VERSION, lastBackupAt: null, lastChangeAt: null };
