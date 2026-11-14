@@ -1,21 +1,156 @@
-// Setlist app entry point.
-// Milestone 0: just the shell. Shows whether we're running as an installed
-// app (full screen) or in a browser tab, plus the app version.
+// Setlist app entry point: views, the library, and startup.
 
-const APP_VERSION = "0.0.1";
+import { $, h, fmtTime, plural, toast } from "./ui.js";
+import { openDb, getAllSongs, getPdfInfo } from "./db.js";
+import { initSongSheet, openSongSheet } from "./song-sheet.js";
+import { openChartView, closeChartView, reloadChartView, currentChartSongId } from "./chart-view.js";
+
+const APP_VERSION = "0.1.0";
+
+const state = {
+  view: "library",
+  tab: "songs",       // Setlists arrive in Milestone 3
+  songs: [],
+  pdfInfo: new Map(), // pdfId -> { fileName, pageCount }
+};
 
 function isInstalled() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true // older iPadOS Safari
+    window.navigator.standalone === true
   );
 }
 
-function renderStatus() {
-  document.getElementById("diagMode").textContent = isInstalled()
-    ? "Installed app (full screen)"
-    : "Browser tab";
-  document.getElementById("diagVersion").textContent = APP_VERSION;
+// ---------- Views ----------
+
+function show(view) {
+  state.view = view;
+  $("#library").hidden = view !== "library";
+  $("#chartView").hidden = view !== "chartView";
+  document.documentElement.classList.toggle("stage", view === "chartView");
 }
 
-renderStatus();
+async function goToChart(id) {
+  show("chartView");
+  await openChartView(id);
+}
+
+function goToLibrary() {
+  closeChartView();
+  show("library");
+  refreshLibrary();
+}
+
+// ---------- Library ----------
+
+const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" });
+
+async function refreshLibrary() {
+  try {
+    const [songs, pdfInfo] = await Promise.all([getAllSongs(), getPdfInfo()]);
+    state.songs = songs.sort(byTitle);
+    state.pdfInfo = pdfInfo;
+  } catch (err) {
+    toast(err.message, { error: true });
+  }
+  renderLibrary();
+}
+
+function songRow(song) {
+  const info = song.pdfId && state.pdfInfo.get(song.pdfId);
+  const sub = info ? plural(info.pageCount, "page") : "No chart yet";
+  return h("li", {},
+    h("button", { className: "row", onclick: () => editSong(song) },
+      h("div", { className: "row-main" },
+        h("div", { className: "row-title" }, song.title),
+        h("p", { className: "row-sub" }, sub)),
+      h("div", { className: "row-meta" },
+        h("span", {}, `${song.bpm} BPM`),
+        h("span", {}, fmtTime(song.lengthSec)))));
+}
+
+function renderLibrary() {
+  const songsTab = state.tab === "songs";
+  $("#libTitle").textContent = songsTab ? "Songs" : "Setlists";
+  $("#tabSongs").setAttribute("aria-selected", String(songsTab));
+  $("#tabSets").setAttribute("aria-selected", String(!songsTab));
+  $("#addSong").hidden = !songsTab;
+
+  const list = $("#libList");
+  const empty = $("#libEmpty");
+  if (songsTab) {
+    list.replaceChildren(...state.songs.map(songRow));
+    empty.textContent = "No songs yet. Tap Add song to add your first chart.";
+    empty.hidden = state.songs.length > 0;
+  } else {
+    list.replaceChildren();
+    empty.textContent = "Setlists come in a later step. For now, add your songs.";
+    empty.hidden = false;
+  }
+}
+
+// ---------- Song sheet ----------
+
+function sheetOptions(song) {
+  const inChart = state.view === "chartView";
+  return {
+    pdfInfo: song && song.pdfId ? state.pdfInfo.get(song.pdfId) : null,
+    onSaved: () => {
+      refreshLibrary();
+      if (inChart) reloadChartView();
+    },
+    onDeleted: () => {
+      if (inChart) goToLibrary();
+      else refreshLibrary();
+    },
+    // From the library you can jump to the chart; inside the chart you're already there.
+    onViewChart: inChart ? null : goToChart,
+  };
+}
+
+function editSong(song) {
+  openSongSheet(song, sheetOptions(song));
+}
+
+// ---------- Startup ----------
+
+function wire() {
+  $("#tabSongs").addEventListener("click", () => { state.tab = "songs"; renderLibrary(); });
+  $("#tabSets").addEventListener("click", () => { state.tab = "setlists"; renderLibrary(); });
+  $("#addSong").addEventListener("click", () => openSongSheet(null, sheetOptions(null)));
+  $("#cvBack").addEventListener("click", goToLibrary);
+  $("#cvEdit").addEventListener("click", async () => {
+    const id = currentChartSongId();
+    if (!id) return;
+    // Fetch fresh so the sheet shows exactly what's stored.
+    try {
+      const [songs, pdfInfo] = await Promise.all([getAllSongs(), getPdfInfo()]);
+      state.pdfInfo = pdfInfo;
+      const song = songs.find((s) => s.id === id);
+      if (song) openSongSheet(song, sheetOptions(song));
+    } catch (err) {
+      toast(err.message, { error: true });
+    }
+  });
+  // Block the browser's own pinch-zoom of the whole page.
+  document.addEventListener("gesturestart", (e) => e.preventDefault());
+}
+
+async function start() {
+  $("#version").textContent = `Version ${APP_VERSION}, ${isInstalled() ? "installed app" : "browser tab"}`;
+  initSongSheet();
+  wire();
+  show("library");
+  renderLibrary();
+  try {
+    await openDb();
+  } catch (err) {
+    const empty = $("#libEmpty");
+    empty.textContent = err.message;
+    empty.hidden = false;
+    return;
+  }
+  refreshLibrary();
+}
+
+start();

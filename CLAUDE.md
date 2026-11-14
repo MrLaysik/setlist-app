@@ -30,7 +30,7 @@ Personal-use iPad setlist app for Brad, a drummer/vocalist who plays live gigs. 
 ## Data model (IndexedDB)
 
 - `songs`: `{ id, title, bpm, lengthSec, zoom (default 1), pdfId, createdAt, updatedAt }`
-- `pdfs`: `{ id, blob, fileName, pageCount }`
+- `pdfs`: `{ id, data, fileName, pageCount }` (`data` is an ArrayBuffer, not a Blob: iPad Safari can lose Blobs stored in IndexedDB after a restart)
 - `setlists`: `{ id, name, songIds: [ordered], createdAt, updatedAt }`
 - `meta`: `{ lastBackupAt, schemaVersion }`
 

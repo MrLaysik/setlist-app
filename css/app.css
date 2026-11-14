@@ -1,8 +1,20 @@
-/* Setlist app styles.
-   Colors and type come from reference/mockup.html.
-   Fonts (Barlow, Barlow Condensed) get added as local files in a later
-   milestone; until then the fallback stack is used. */
+/* Setlist app styles. Colors and type come from reference/mockup.html. */
 
+/* ---------- Fonts (local files, no CDN) ---------- */
+@font-face { font-family: "Barlow"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/barlow-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/barlow-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/barlow-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/barlow-condensed-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
+
+/* ---------- Theme ---------- */
 :root {
   /* Library: light theme */
   --bg: #EDEFF3;
@@ -13,8 +25,10 @@
   --line: #D3D7DF;
   --accent: #9A6100;
   --accent-ink: #FFFFFF;
+  --danger: #B3261E;
+  --danger-ink: #FFFFFF;
 
-  /* Stage (performance view): always dark */
+  /* Stage (chart and performance views): always dark */
   --stage-bg: #151A24;
   --stage-surface: #1E2431;
   --stage-surface-2: #2A3142;
@@ -23,10 +37,10 @@
   --amber: #F4B53F;
   --amber-ink: #231A05;
   --dot-off: #3A4256;
+  --paper: #E6E4DE;
 
   --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
-
   --gutter: clamp(20px, 5vw, 56px);
 
   color-scheme: light;
@@ -42,16 +56,17 @@
     --line: #323A4C;
     --accent: #F4B53F;
     --accent-ink: #231A05;
+    --danger: #FF8A80;
+    --danger-ink: #2A0A08;
     color-scheme: dark;
   }
 }
 
+/* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 
-html {
-  height: 100%;
-  background: var(--bg);
-}
+html { height: 100%; background: var(--bg); }
+html.stage, html.stage body { background: var(--stage-bg); }
 
 body {
   margin: 0;
@@ -65,6 +80,16 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+button {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+  cursor: pointer; -webkit-user-select: none; user-select: none;
+}
+button:disabled { cursor: default; opacity: .5; }
+button:focus-visible, input:focus-visible, label:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+.stage button:focus-visible { outline-color: var(--amber); }
+svg { display: block; flex: none; }
+[hidden] { display: none !important; }
+
 #app {
   position: relative;
   height: 100%;
@@ -77,57 +102,129 @@ body {
     env(safe-area-inset-left, 0px);
 }
 
-.view {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.view[hidden] { display: none; }
+.view { height: 100%; display: flex; flex-direction: column; }
 
-/* Library */
+/* ---------- Library ---------- */
 .lib-head {
   padding: 28px var(--gutter) 14px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 24px;
-  flex-wrap: wrap;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px 24px; flex-wrap: wrap;
 }
 .lib-title {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(42px, 7vw, 68px);
-  line-height: .92;
-  letter-spacing: -.01em;
-  margin: 0;
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(42px, 7vw, 68px); line-height: .92; letter-spacing: -.01em; margin: 0;
 }
+.head-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 4px; }
+.seg button { padding: 0 22px; border-radius: 999px; font-weight: 600; color: var(--ink-2); min-height: 44px; }
+.seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); }
+
 .scroll {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 4px var(--gutter) 48px;
 }
-.note {
-  color: var(--ink-2);
-  font-size: 15px;
-  line-height: 1.45;
-  margin: 28px 0 0;
-  max-width: 58ch;
+.rows { list-style: none; margin: 0; padding: 0; max-width: 780px; }
+.row {
+  display: flex; align-items: center; gap: 18px; width: 100%; text-align: left;
+  padding: 16px 4px; border-bottom: 1px solid var(--line); min-height: 68px;
+}
+.row-main { min-width: 0; flex: 1; }
+.row-title {
+  font-family: var(--display); font-size: 29px; font-weight: 600; line-height: 1.08;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-sub { color: var(--ink-2); font-size: 15px; margin: 3px 0 0; }
+.row-meta { display: flex; gap: 20px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row-meta span:first-child { min-width: 4.6em; text-align: right; }
+
+.note { color: var(--ink-2); font-size: 15px; line-height: 1.45; margin: 28px 0 0; max-width: 58ch; }
+.version { color: var(--ink-2); font-size: 13px; margin: 40px 0 0; opacity: .8; }
+
+.primary {
+  background: var(--accent); color: var(--accent-ink); font-weight: 600;
+  padding: 0 28px; border-radius: 999px; min-height: 50px; font-size: 18px;
+}
+.ghost { padding: 0 20px; border-radius: 999px; min-height: 50px; font-weight: 600; color: var(--ink-2); }
+.ghost.danger { color: var(--danger); padding-left: 4px; }
+.danger-btn {
+  background: var(--danger); color: var(--danger-ink); font-weight: 600;
+  padding: 0 28px; border-radius: 999px; min-height: 50px; font-size: 18px;
 }
 
-/* Small status readout, handy for checking installs */
-.diag {
-  margin: 28px 0 0;
-  max-width: 420px;
-  border-top: 1px solid var(--line);
-  font-size: 15px;
+/* ---------- Stage: chart view (always dark) ---------- */
+.stage { background: var(--stage-bg); color: var(--stage-ink); }
+.p-top {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px clamp(10px, 2.5vw, 22px); background: var(--stage-surface);
+  min-height: 72px;
 }
-.diag div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+.p-title { flex: 1; min-width: 0; padding-left: 4px; }
+.p-title h2 {
+  margin: 0; font-family: var(--display); font-weight: 600;
+  font-size: clamp(25px, 3.6vw, 36px); line-height: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.diag dt { color: var(--ink-2); }
-.diag dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.p-title .pos {
+  color: var(--stage-ink-2); font-size: 14px; margin-top: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.icon-btn { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; color: var(--stage-ink-2); }
+
+.chart {
+  flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; padding: 18px 14px 22px;
+}
+.pages { display: flex; flex-direction: column; gap: 14px; margin: 0 auto; width: min(100%, 840px); }
+.pdfpage { width: 100%; background: var(--paper); border-radius: 3px; overflow: hidden; flex: none; }
+.pdfpage canvas { display: block; width: 100%; height: 100%; }
+.chart-msg {
+  color: var(--stage-ink-2); text-align: center; font-size: 17px; line-height: 1.45;
+  margin: 15vh auto 0; max-width: 40ch;
+}
+
+/* ---------- Sheets and dialogs ---------- */
+dialog.sheet {
+  border: 0; padding: 26px 26px 22px; border-radius: 22px;
+  width: min(100% - 32px, 500px);
+  max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow: auto; background: var(--surface); color: var(--ink);
+}
+dialog.sheet.small { width: min(100% - 32px, 420px); }
+dialog::backdrop { background: rgba(20, 24, 34, .45); }
+@media (prefers-color-scheme: dark) { dialog::backdrop { background: rgba(5, 7, 12, .6); } }
+
+.sheet h2 { margin: 0 0 4px; font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; }
+.field { margin-top: 18px; }
+.field > span, .field > label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 7px; }
+.inp {
+  font: inherit; font-size: 19px; width: 100%; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-height: 50px;
+}
+.stepper { display: flex; gap: 8px; }
+.stepper .inp { text-align: center; font-variant-numeric: tabular-nums; }
+.stepper button { flex: none; width: 52px; border-radius: 12px; background: var(--surface-2); font-size: 24px; font-weight: 500; }
+.len { display: flex; align-items: center; gap: 10px; }
+.len .inp { width: 6em; text-align: center; font-variant-numeric: tabular-nums; }
+.len b { font-size: 22px; }
+.help { font-size: 14px; line-height: 1.4; color: var(--ink-2); margin: 7px 0 0; }
+.chart-file { margin: 0 0 10px; font-size: 15px; line-height: 1.4; color: var(--ink-2); overflow-wrap: anywhere; }
+.chart-file.bad { color: var(--danger); }
+.file-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.file {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 48px;
+  padding: 0 18px; border-radius: 999px; background: var(--surface-2); font-weight: 600; cursor: pointer;
+}
+.file input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.form-error { color: var(--danger); font-size: 15px; line-height: 1.4; margin: 18px 0 0; }
+.confirm-msg { color: var(--ink-2); line-height: 1.45; margin: 12px 0 0; }
+.actions { display: flex; align-items: center; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+.actions .spacer { flex: 1; }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); z-index: 50;
+  max-width: min(90vw, 520px); padding: 14px 20px; border-radius: 14px;
+  background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1.4; text-align: center;
+}
+.toast.error { background: var(--danger); color: var(--danger-ink); }

@@ -18,23 +18,101 @@
 <meta name="theme-color" content="#EDEFF3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161B25" media="(prefers-color-scheme: dark)">
 
+<link rel="preload" href="vendor/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 <script type="module" src="js/app.js"></script>
 </head>
 <body>
 <div id="app">
+
+  <!-- Library: Setlists and Songs tabs -->
   <section id="library" class="view" aria-labelledby="libTitle">
     <header class="lib-head">
-      <h1 class="lib-title" id="libTitle">Setlists</h1>
+      <h1 class="lib-title" id="libTitle">Songs</h1>
+      <div class="head-actions">
+        <div class="seg" role="tablist" aria-label="Library">
+          <button role="tab" id="tabSets" aria-selected="false">Setlists</button>
+          <button role="tab" id="tabSongs" aria-selected="true">Songs</button>
+        </div>
+        <button class="primary" id="addSong">Add song</button>
+      </div>
     </header>
     <div class="scroll">
-      <p class="note">Nothing here yet. Songs and charts come in the next step.</p>
-      <dl class="diag" aria-label="App status">
-        <div><dt>Running as</dt><dd id="diagMode">Checking…</dd></div>
-        <div><dt>Version</dt><dd id="diagVersion"></dd></div>
-      </dl>
+      <ul class="rows" id="libList"></ul>
+      <p class="note" id="libEmpty" hidden></p>
+      <p class="version" id="version"></p>
+    </div>
+  </section>
+
+  <!-- Chart view: one song's PDF as a continuous stack of pages -->
+  <section id="chartView" class="view stage" hidden aria-labelledby="cvTitle">
+    <header class="p-top">
+      <button class="icon-btn" id="cvBack" aria-label="Back to songs"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="p-title"><h2 id="cvTitle"></h2><div class="pos" id="cvSub"></div></div>
+      <button class="icon-btn" id="cvEdit" aria-label="Song settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
+    </header>
+    <div class="chart" id="chart">
+      <p class="chart-msg" id="cvMsg" hidden></p>
+      <div class="pages" id="pages"></div>
     </div>
   </section>
 </div>
+
+<!-- Song settings: add or edit a song -->
+<dialog class="sheet" id="songSheet" aria-labelledby="sheetTitle">
+  <form id="songForm" novalidate>
+    <h2 id="sheetTitle">Add song</h2>
+    <div class="field">
+      <label for="fTitle">Title</label>
+      <input class="inp" id="fTitle" type="text" autocomplete="off" autocapitalize="words" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label for="fBpm">Tempo (BPM)</label>
+      <div class="stepper">
+        <button type="button" id="bpmDown" aria-label="Slower">−</button>
+        <input class="inp" id="fBpm" type="number" inputmode="numeric" min="30" max="300">
+        <button type="button" id="bpmUp" aria-label="Faster">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <span>Song length</span>
+      <div class="len">
+        <input class="inp" id="fMin" type="number" inputmode="numeric" min="0" max="99" placeholder="m" aria-label="Minutes">
+        <b>:</b>
+        <input class="inp" id="fSec" type="number" inputmode="numeric" min="0" max="59" placeholder="ss" aria-label="Seconds">
+      </div>
+      <p class="help">The chart scrolls from top to bottom over this length.</p>
+    </div>
+    <div class="field">
+      <span>Chart</span>
+      <p class="chart-file" id="pdfStatus"></p>
+      <div class="file-row">
+        <label class="file"><input id="fPdf" type="file" accept="application/pdf,.pdf"><span id="pdfPick">Choose PDF</span></label>
+        <button type="button" class="file" id="viewChart" hidden>View chart</button>
+      </div>
+    </div>
+    <p class="form-error" id="formError" role="alert" hidden></p>
+    <div class="actions">
+      <button type="button" class="ghost danger" id="sDelete" hidden>Delete song</button>
+      <span class="spacer"></span>
+      <button type="button" class="ghost" id="sCancel">Cancel</button>
+      <button type="submit" class="primary" id="sSave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Yes/no confirmation -->
+<dialog class="sheet small" id="confirm" aria-labelledby="confirmTitle">
+  <h2 id="confirmTitle"></h2>
+  <p class="confirm-msg" id="confirmMsg"></p>
+  <div class="actions">
+    <span class="spacer"></span>
+    <button type="button" class="ghost" id="confirmCancel">Cancel</button>
+    <button type="button" class="primary" id="confirmOk"></button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>
