@@ -92,17 +92,23 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
 svg { display: block; flex: none; }
 [hidden] { display: none !important; }
 
+/* Safe areas (status bar, home indicator, rounded corners). Kept in variables
+   so they can be faked on a Mac for testing. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
 #app {
   position: relative;
   height: 100%;
   overflow: hidden;
-  /* Keep content clear of the status bar, home indicator and rounded corners */
-  padding:
-    env(safe-area-inset-top, 0px)
-    env(safe-area-inset-right, 0px)
-    env(safe-area-inset-bottom, 0px)
-    env(safe-area-inset-left, 0px);
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
 }
+/* On stage, the top bar reaches up behind the status bar instead (see .p-top). */
+html.stage #app { padding-top: 0; }
 
 .view { height: 100%; display: flex; flex-direction: column; }
 
@@ -248,8 +254,10 @@ svg { display: block; flex: none; }
 .stage { background: var(--stage-bg); color: var(--stage-ink); }
 .p-top {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px clamp(10px, 2.5vw, 22px); background: var(--stage-surface);
-  min-height: 72px;
+  /* The bar's color runs up behind the status bar; its content starts below it. */
+  padding: calc(var(--safe-top) + 12px) clamp(10px, 2.5vw, 22px) 12px;
+  background: var(--stage-surface);
+  min-height: calc(var(--safe-top) + 72px);
 }
 .p-title { flex: 1; min-width: 0; padding-left: 4px; }
 .p-title h2 {
@@ -279,7 +287,7 @@ svg { display: block; flex: none; }
 dialog.sheet {
   border: 0; padding: 26px 26px 22px; border-radius: 22px;
   width: min(100% - 32px, 500px);
-  max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100% - 32px - var(--safe-top) - var(--safe-bottom));
   overflow: auto; background: var(--surface); color: var(--ink);
 }
 dialog.sheet.small { width: min(100% - 32px, 420px); }
@@ -316,7 +324,7 @@ dialog::backdrop { background: rgba(20, 24, 34, .45); }
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); z-index: 50;
+  bottom: calc(var(--safe-bottom) + 24px); z-index: 50;
   max-width: min(90vw, 520px); padding: 14px 20px; border-radius: 14px;
   background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1.4; text-align: center;
 }
