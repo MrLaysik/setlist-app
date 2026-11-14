@@ -1,0 +1,133 @@
+/* Setlist app styles.
+   Colors and type come from reference/mockup.html.
+   Fonts (Barlow, Barlow Condensed) get added as local files in a later
+   milestone; until then the fallback stack is used. */
+
+:root {
+  /* Library: light theme */
+  --bg: #EDEFF3;
+  --surface: #FFFFFF;
+  --surface-2: #E1E4EA;
+  --ink: #1C2230;
+  --ink-2: #596173;
+  --line: #D3D7DF;
+  --accent: #9A6100;
+  --accent-ink: #FFFFFF;
+
+  /* Stage (performance view): always dark */
+  --stage-bg: #151A24;
+  --stage-surface: #1E2431;
+  --stage-surface-2: #2A3142;
+  --stage-ink: #ECE9E2;
+  --stage-ink-2: #9AA2B4;
+  --amber: #F4B53F;
+  --amber-ink: #231A05;
+  --dot-off: #3A4256;
+
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+
+  --gutter: clamp(20px, 5vw, 56px);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161B25;
+    --surface: #1F2532;
+    --surface-2: #2A3142;
+    --ink: #ECE9E2;
+    --ink-2: #9AA2B4;
+    --line: #323A4C;
+    --accent: #F4B53F;
+    --accent-ink: #231A05;
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  height: 100%;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--body);
+  font-size: 17px;
+  color: var(--ink);
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  /* Keep content clear of the status bar, home indicator and rounded corners */
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+.view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.view[hidden] { display: none; }
+
+/* Library */
+.lib-head {
+  padding: 28px var(--gutter) 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+}
+.lib-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(42px, 7vw, 68px);
+  line-height: .92;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px var(--gutter) 48px;
+}
+.note {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 28px 0 0;
+  max-width: 58ch;
+}
+
+/* Small status readout, handy for checking installs */
+.diag {
+  margin: 28px 0 0;
+  max-width: 420px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+}
+.diag div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.diag dt { color: var(--ink-2); }
+.diag dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }

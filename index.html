@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Setlist</title>
+
+<!-- Installable app: name, icons, full-screen -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Setlist">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+
+<!-- Browser chrome color follows the system theme -->
+<meta name="theme-color" content="#EDEFF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161B25" media="(prefers-color-scheme: dark)">
+
+<link rel="stylesheet" href="css/app.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<div id="app">
+  <section id="library" class="view" aria-labelledby="libTitle">
+    <header class="lib-head">
+      <h1 class="lib-title" id="libTitle">Setlists</h1>
+    </header>
+    <div class="scroll">
+      <p class="note">Nothing here yet. Songs and charts come in the next step.</p>
+      <dl class="diag" aria-label="App status">
+        <div><dt>Running as</dt><dd id="diagMode">Checking…</dd></div>
+        <div><dt>Version</dt><dd id="diagVersion"></dd></div>
+      </dl>
+    </div>
+  </section>
+</div>
+</body>
+</html>

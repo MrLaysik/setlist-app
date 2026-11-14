@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Setlist mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDEFF3; --surface:#FFFFFF; --surface-2:#E1E4EA; --ink:#1C2230; --ink-2:#596173; --line:#D3D7DF;
+  --accent:#9A6100; --accent-ink:#FFFFFF; --scrim:rgba(20,24,34,.45);
+  --stage-bg:#151A24; --stage-surface:#1E2431; --stage-surface-2:#2A3142; --stage-ink:#ECE9E2; --stage-ink-2:#9AA2B4;
+  --amber:#F4B53F; --amber-ink:#231A05; --dot-off:#3A4256;
+  --paper:#E6E4DE; --paper-ink:#1E2230; --paper-ink-2:#5C6270; --paper-bar:#C7C4BC;
+  --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161B25; --surface:#1F2532; --surface-2:#2A3142; --ink:#ECE9E2; --ink-2:#9AA2B4; --line:#323A4C;
+    --accent:#F4B53F; --accent-ink:#231A05; --scrim:rgba(5,7,12,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161B25; --surface:#1F2532; --surface-2:#2A3142; --ink:#ECE9E2; --ink-2:#9AA2B4; --line:#323A4C;
+  --accent:#F4B53F; --accent-ink:#231A05; --scrim:rgba(5,7,12,.6);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+html.stage{background:var(--stage-bg)}
+body{margin:0;height:100%;font-family:var(--body);font-size:17px;color:var(--ink);background:var(--bg);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+html.stage body{background:var(--stage-bg)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+button:disabled{cursor:default}
+button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+#perform button:focus-visible{outline-color:var(--amber)}
+svg{display:block;flex:none}
+
+#app{position:relative;height:100%;overflow:hidden}
+.view{position:absolute;inset:0;display:flex;flex-direction:column}
+.view[hidden],.sheet-wrap[hidden]{display:none}
+
+/* Library + setlist */
+.lib-head{padding:28px clamp(20px,5vw,56px) 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px 24px;flex-wrap:wrap}
+.lib-title{font-family:var(--display);font-weight:700;font-size:clamp(42px,7vw,68px);line-height:.92;letter-spacing:-.01em;margin:0}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:4px}
+.seg button{padding:0 22px;border-radius:999px;font-weight:600;color:var(--ink-2);min-height:44px}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--ink)}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px clamp(20px,5vw,56px) 48px}
+.rows{list-style:none;margin:0;padding:0;max-width:780px}
+.row{display:flex;align-items:center;gap:18px;width:100%;text-align:left;padding:16px 4px;border-bottom:1px solid var(--line);min-height:68px}
+.row-main{min-width:0;flex:1}
+.row-title{font-family:var(--display);font-size:29px;font-weight:600;line-height:1.08;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-sub{color:var(--ink-2);font-size:15px;margin:3px 0 0}
+.row-meta{display:flex;gap:20px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row-meta span:first-child{min-width:4.6em;text-align:right}
+.row .chev{color:var(--ink-2)}
+.num{font-family:var(--display);font-weight:700;font-size:30px;color:var(--ink-2);min-width:1.4em;text-align:right;font-variant-numeric:tabular-nums}
+.note{color:var(--ink-2);font-size:15px;line-height:1.45;margin:28px 0 0;max-width:58ch}
+.back{display:inline-flex;align-items:center;gap:2px;color:var(--accent);font-weight:600;min-height:44px;margin:0 0 6px -6px;padding-right:8px}
+.primary{background:var(--accent);color:var(--accent-ink);font-weight:600;padding:0 28px;border-radius:999px;min-height:50px;font-size:18px}
+
+/* Performance view */
+#perform{background:var(--stage-bg);color:var(--stage-ink)}
+.p-top{display:flex;align-items:center;gap:8px;padding:8px clamp(10px,2.5vw,22px);background:var(--stage-surface)}
+.p-title{flex:1;min-width:0;padding-left:4px}
+.p-title h2{margin:0;font-family:var(--display);font-weight:600;font-size:clamp(25px,3.6vw,36px);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-title .pos{color:var(--stage-ink-2);font-size:14px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;color:var(--stage-ink-2)}
+.wake{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--stage-ink-2);min-height:46px;padding:0 10px;border-radius:12px;white-space:nowrap}
+.wake.on{color:var(--amber)}
+.metro{display:flex;align-items:center;gap:12px;padding:0 6px 0 18px;border-radius:999px;background:var(--stage-surface-2);min-height:72px;margin-left:4px}
+.bpm{font-family:var(--display);font-weight:700;font-size:28px;font-variant-numeric:tabular-nums;line-height:1;display:flex;align-items:baseline;gap:4px}
+.bpm small{font-size:14px;font-weight:600;color:var(--stage-ink-2)}
+.dot{width:60px;height:60px;border-radius:50%;background:var(--dot-off);flex:none}
+.dot.on{background:var(--amber)}
+.metro[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 3px var(--dot-off)}
+.metro[aria-pressed="false"] .bpm{color:var(--stage-ink-2)}
+
+.chart-area{flex:1;min-height:0;position:relative;display:flex}
+.chart{flex:1;min-width:0;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;padding:18px 14px 22px;overscroll-behavior:contain}
+.pages{display:flex;flex-direction:column;gap:14px;margin:0 auto;width:min(100%,840px)}
+.page{position:relative;width:100%;aspect-ratio:8.5/11;background:var(--paper);color:var(--paper-ink);border-radius:3px;container-type:inline-size;overflow:hidden;flex:none}
+.page-in{padding:7cqw 8cqw}
+.c-head{display:flex;justify-content:space-between;align-items:baseline;gap:3cqw;border-bottom:.35cqw solid var(--paper-ink);padding-bottom:1.6cqw;margin-bottom:3.6cqw}
+.c-head h3{margin:0;font-family:var(--display);font-weight:700;font-size:6cqw;line-height:1}
+.c-head span{font-size:2.3cqw;color:var(--paper-ink-2);white-space:nowrap}
+.c-cont{font-size:2.3cqw;color:var(--paper-ink-2);margin-bottom:3.6cqw}
+.sec{margin-bottom:3.2cqw}
+.sec-label{font-weight:600;font-size:2.4cqw;color:var(--paper-ink-2);margin-bottom:1cqw}
+.line{margin-bottom:1.5cqw}
+.chords{position:relative;height:3.6cqw}
+.chords b{position:absolute;top:0;font-family:var(--display);font-weight:700;font-size:3cqw;line-height:1}
+.lyric{height:1.5cqw;background:var(--paper-bar);border-radius:1cqw;margin-top:.5cqw}
+.pageno{position:absolute;right:5cqw;bottom:3.5cqw;font-size:2cqw;color:var(--paper-ink-2)}
+.pdfpage{width:100%;background:var(--paper);border-radius:3px;overflow:hidden;flex:none}
+.pdfpage canvas{display:block;width:100%;height:auto}
+.zoomchip{position:absolute;right:16px;bottom:16px;display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 18px;border-radius:999px;background:var(--stage-surface-2);color:var(--stage-ink);font-weight:600;font-size:16px}
+.zoomchip[hidden]{display:none}
+#zoomPct{color:var(--amber);font-variant-numeric:tabular-nums}
+
+.hint{position:absolute;left:50%;top:42%;transform:translateX(-50%);width:max-content;max-width:min(88vw,420px);background:var(--stage-surface-2);color:var(--stage-ink);padding:16px 22px;border-radius:16px;font-size:17px;line-height:1.4;text-align:center;pointer-events:none;opacity:0;transition:opacity .4s}
+.hint.show{opacity:1}
+
+.p-bottom{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:10px clamp(10px,2.5vw,22px) 12px;background:var(--stage-surface)}
+.nav{display:flex;align-items:center;gap:10px;min-height:66px;padding:8px 14px 8px 10px;border-radius:16px;background:var(--stage-surface-2);color:var(--stage-ink);text-align:left;min-width:0;max-width:100%;justify-self:start}
+.nav.next{justify-self:end;text-align:right;flex-direction:row-reverse;padding:8px 10px 8px 14px}
+.nav-txt{display:flex;flex-direction:column;min-width:0}
+.nav .lbl{font-size:13px;color:var(--stage-ink-2)}
+.nav .nt{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav:disabled{opacity:.3}
+.center{display:flex;flex-direction:column;align-items:center;gap:8px;width:clamp(160px,24vw,230px)}
+.go{width:100%;height:66px;border-radius:999px;background:var(--amber);color:var(--amber-ink);font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.01em}
+.go.stop{background:var(--stage-ink);color:var(--stage-bg)}
+.bar{width:100%;height:4px;background:var(--stage-surface-2);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--amber);transform-origin:left center;transform:scaleX(0)}
+.time{font-variant-numeric:tabular-nums;font-size:15px;color:var(--stage-ink-2)}
+@media (max-width:640px){
+  .nav-txt,.wake span{display:none}
+  .nav,.nav.next{padding:8px 14px}
+  .bpm{font-size:24px}
+  .dot{width:48px;height:48px}
+  .metro{min-height:60px}
+}
+
+/* Song settings sheet */
+.sheet-wrap{position:fixed;inset:0;z-index:20;background:var(--scrim);display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.sheet{background:var(--surface);color:var(--ink);border-radius:22px;width:min(100%,500px);max-height:100%;overflow:auto;padding:26px 26px 22px}
+.sheet h2{margin:0 0 4px;font-family:var(--display);font-weight:700;font-size:34px;line-height:1}
+.field{margin-top:18px}
+.field > span,.field > label{display:block;font-weight:600;font-size:15px;margin-bottom:7px}
+.inp{font:inherit;font-size:19px;width:100%;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:50px}
+.stepper{display:flex;gap:8px}
+.stepper .inp{text-align:center;font-variant-numeric:tabular-nums}
+.stepper button{flex:none;width:52px;border-radius:12px;background:var(--surface-2);font-size:24px;font-weight:500}
+.len{display:flex;align-items:center;gap:10px}
+.len .inp{width:6em;text-align:center;font-variant-numeric:tabular-nums}
+.len b{font-size:22px}
+.help{font-size:14px;line-height:1.4;color:var(--ink-2);margin:7px 0 0}
+.file{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 18px;border-radius:999px;background:var(--surface-2);font-weight:600;cursor:pointer}
+.file input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:26px}
+.ghost{padding:0 20px;border-radius:999px;min-height:50px;font-weight:600;color:var(--ink-2)}
+@media (prefers-reduced-motion: reduce){ .hint{transition:none} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <section id="library" class="view" aria-labelledby="libTitle">
+    <header class="lib-head">
+      <h1 class="lib-title" id="libTitle">Setlists</h1>
+      <div class="seg" role="tablist" aria-label="Library">
+        <button role="tab" id="tabSets" aria-selected="true">Setlists</button>
+        <button role="tab" id="tabSongs" aria-selected="false">Songs</button>
+      </div>
+    </header>
+    <div class="scroll">
+      <ul class="rows" id="libList"></ul>
+      <p class="note">This is a mockup with made-up sample charts. Edits and any PDFs you load last until you close the page.</p>
+    </div>
+  </section>
+
+  <section id="setlist" class="view" hidden aria-labelledby="slName">
+    <header class="lib-head">
+      <div>
+        <button class="back" id="slBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Library</button>
+        <h1 class="lib-title" id="slName"></h1>
+        <p class="row-sub" id="slInfo"></p>
+      </div>
+      <button class="primary" id="slStart">Start set</button>
+    </header>
+    <div class="scroll"><ol class="rows" id="slList"></ol></div>
+  </section>
+
+  <section id="perform" class="view" hidden aria-label="Performance view">
+    <header class="p-top">
+      <button class="icon-btn" id="pBack" aria-label="Back to setlist"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="p-title"><h2 id="pTitle"></h2><div class="pos" id="pPos"></div></div>
+      <button class="wake" id="pWake" aria-live="polite"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg><span id="pWakeT">Checking screen</span></button>
+      <button class="icon-btn" id="pEdit" aria-label="Song settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
+      <button class="metro" id="pMetro" aria-pressed="false" aria-label="Metronome">
+        <span class="bpm"><span id="pBpm">92</span><small>BPM</small></span>
+        <span class="dot" id="pDot" aria-hidden="true"></span>
+      </button>
+    </header>
+    <div class="chart-area">
+      <div class="chart" id="chart"><div class="pages" id="pages"></div></div>
+      <button class="zoomchip" id="zoomChip" hidden aria-label="Reset zoom to fit width"><span id="zoomPct">100%</span>Fit to width</button>
+    </div>
+    <div class="hint" id="hint" role="status">Swipe left or right to change songs.<br>Pinch to zoom. Tap the dot to stop or start the metronome.</div>
+    <footer class="p-bottom">
+      <button class="nav prev" id="pPrev"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="nav-txt"><span class="lbl">Previous</span><span class="nt" id="pPrevT"></span></span></button>
+      <div class="center">
+        <button class="go" id="pGo">Start</button>
+        <div class="bar" aria-hidden="true"><i id="pBar"></i></div>
+        <div class="time" id="pTime">0:00 / 0:00</div>
+      </div>
+      <button class="nav next" id="pNext"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><span class="nav-txt"><span class="lbl">Next</span><span class="nt" id="pNextT"></span></span></button>
+    </footer>
+  </section>
+</div>
+
+<div class="sheet-wrap" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Song settings</h2>
+    <div class="field"><label for="fTitle">Title</label><input class="inp" id="fTitle" type="text" autocomplete="off"></div>
+    <div class="field"><label for="fBpm">Tempo (BPM)</label>
+      <div class="stepper"><button id="bpmDown" aria-label="Slower">−</button><input class="inp" id="fBpm" type="number" inputmode="numeric" min="30" max="300"><button id="bpmUp" aria-label="Faster">+</button></div>
+    </div>
+    <div class="field"><span>Song length</span>
+      <div class="len"><input class="inp" id="fMin" type="number" inputmode="numeric" min="0" max="59" aria-label="Minutes"><b>:</b><input class="inp" id="fSec" type="number" inputmode="numeric" min="0" max="59" aria-label="Seconds"></div>
+      <p class="help">The chart scrolls from top to bottom over this length.</p>
+    </div>
+    <div class="field"><span>Chart</span>
+      <label class="file"><input id="fPdf" type="file" accept="application/pdf,.pdf">Try one of your PDFs</label>
+      <p class="help" id="pdfStatus"></p>
+    </div>
+    <div class="actions"><button class="ghost" id="sCancel">Cancel</button><button class="primary" id="sSave">Save changes</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function fmt(s){s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
+var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+var songs=[
+  {id:"s1",title:"Glass Harbor",bpm:92,len:252,pages:2,pdf:null},
+  {id:"s2",title:"Neon Tide",bpm:128,len:210,pages:1,pdf:null},
+  {id:"s3",title:"Slow Burn Avenue",bpm:76,len:305,pages:3,pdf:null},
+  {id:"s4",title:"Paper Satellites",bpm:110,len:228,pages:2,pdf:null},
+  {id:"s5",title:"Midnight Ferry",bpm:84,len:280,pages:2,pdf:null},
+  {id:"s6",title:"Copper Sky",bpm:140,len:178,pages:1,pdf:null},
+  {id:"s7",title:"Lowlight",bpm:68,len:262,pages:2,pdf:null}
+];
+var setlists=[
+  {id:"l1",name:"Friday night set",songIds:["s2","s1","s4","s3","s6","s5"]},
+  {id:"l2",name:"Acoustic short set",songIds:["s7","s1","s5"]}
+];
+function byId(id){for(var i=0;i<songs.length;i++)if(songs[i].id===id)return songs[i];return null;}
+
+/* ---------- Sample charts (made-up placeholder content) ---------- */
+function rng(seed){var x=2166136261>>>0;for(var i=0;i<seed.length;i++){x^=seed.charCodeAt(i);x=Math.imul(x,16777619)>>>0;}
+  return function(){x^=x<<13;x>>>=0;x^=x>>>17;x^=x<<5;x>>>=0;return x/4294967296;};}
+var CHORDS=["G","D","Em","C","Am","F","Bm","A","E","Dsus4","Cadd9","G/B","D/F#","Asus2"];
+var SECS={1:["Intro","Verse","Chorus","Outro"],2:["Intro","Verse 1","Chorus","Verse 2","Chorus","Bridge","Chorus","Outro"],3:["Intro","Verse 1","Pre-chorus","Chorus","Verse 2","Pre-chorus","Chorus","Solo","Bridge","Chorus","Outro"]};
+function samplePages(song){
+  var r=rng(song.id+"x"),pool=CHORDS.slice(),pal=[];
+  while(pal.length<5){pal.push(pool.splice(Math.floor(r()*pool.length),1)[0]);}
+  var n=song.pages,secs=SECS[Math.min(n,3)],per=Math.ceil(secs.length/n),frag=document.createDocumentFragment();
+  for(var p=0;p<n;p++){
+    var page=document.createElement("div");page.className="page";
+    var h='<div class="page-in">';
+    h+= p===0 ? '<div class="c-head"><h3>'+esc(song.title)+'</h3><span>'+song.bpm+' BPM, '+fmt(song.len)+'</span></div>'
+              : '<div class="c-cont">'+esc(song.title)+', continued</div>';
+    secs.slice(p*per,(p+1)*per).forEach(function(name){
+      var bare=(name==="Intro"||name==="Outro"||name==="Solo"),lines=bare?2:4;
+      h+='<div class="sec"><div class="sec-label">'+name+'</div>';
+      for(var i=0;i<lines;i++){
+        var k=2+Math.floor(r()*3),ch="";
+        for(var j=0;j<k;j++){ch+='<b style="left:'+((j/k)*84+r()*5).toFixed(1)+'%">'+pal[Math.floor(r()*pal.length)]+'</b>';}
+        h+='<div class="line"><div class="chords">'+ch+'</div>'+(bare?'':'<div class="lyric" style="width:'+Math.round(55+r()*40)+'%"></div>')+'</div>';
+      }
+      h+='</div>';
+    });
+    h+='</div><div class="pageno">'+(p+1)+' / '+n+'</div>';
+    page.innerHTML=h;frag.appendChild(page);
+  }
+  return frag;
+}
+
+/* ---------- Views ---------- */
+var view="library",tab="setlists",curList=null;
+function show(v){
+  ["library","setlist","perform"].forEach(function(id){$("#"+id).hidden=(id!==v);});
+  view=v;document.documentElement.classList.toggle("stage",v==="perform");
+}
+var chevron='<svg class="chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+function totalMin(l){var t=0;l.songIds.forEach(function(id){t+=byId(id).len;});return Math.round(t/60);}
+function renderLibrary(){
+  $("#libTitle").textContent= tab==="setlists"?"Setlists":"Songs";
+  $("#tabSets").setAttribute("aria-selected",tab==="setlists");
+  $("#tabSongs").setAttribute("aria-selected",tab==="songs");
+  var ul=$("#libList");ul.innerHTML="";
+  if(tab==="setlists"){
+    setlists.forEach(function(l){
+      var li=document.createElement("li");
+      li.innerHTML='<button class="row"><div class="row-main"><div class="row-title">'+esc(l.name)+'</div><p class="row-sub">'+l.songIds.length+' songs, about '+totalMin(l)+' min</p></div>'+chevron+'</button>';
+      li.firstChild.addEventListener("click",function(){openSetlist(l);});ul.appendChild(li);
+    });
+  }else{
+    songs.forEach(function(s){
+      var li=document.createElement("li");
+      var sub= s.pdf ? "Your PDF, "+s.pages+(s.pages===1?" page":" pages") : "Sample chart, "+s.pages+(s.pages===1?" page":" pages");
+      li.innerHTML='<button class="row"><div class="row-main"><div class="row-title">'+esc(s.title)+'</div><p class="row-sub">'+sub+'</p></div><div class="row-meta"><span>'+s.bpm+' BPM</span><span>'+fmt(s.len)+'</span></div></button>';
+      li.firstChild.addEventListener("click",function(){openEditor(s);});ul.appendChild(li);
+    });
+  }
+}
+function openSetlist(l){curList=l;renderSetlist();show("setlist");}
+function renderSetlist(){
+  $("#slName").textContent=curList.name;
+  $("#slInfo").textContent=curList.songIds.length+" songs, about "+totalMin(curList)+" min";
+  var ol=$("#slList");ol.innerHTML="";
+  curList.songIds.forEach(function(id,i){
+    var s=byId(id),li=document.createElement("li");
+    li.innerHTML='<button class="row"><span class="num">'+(i+1)+'</span><div class="row-main"><div class="row-title">'+esc(s.title)+'</div></div><div class="row-meta"><span>'+s.bpm+' BPM</span><span>'+fmt(s.len)+'</span></div></button>';
+    li.firstChild.addEventListener("click",function(){openPerform(curList,i);});ol.appendChild(li);
+  });
+}
+$("#tabSets").addEventListener("click",function(){tab="setlists";renderLibrary();});
+$("#tabSongs").addEventListener("click",function(){tab="songs";renderLibrary();});
+$("#slBack").addEventListener("click",function(){renderLibrary();show("library");});
+$("#slStart").addEventListener("click",function(){openPerform(curList,0);});
+
+/* ---------- Performance ---------- */
+var chart=$("#chart"),pagesEl=$("#pages"),dot=$("#pDot");
+var P={list:null,idx:0,running:false,pos:0,posStart:0,tStart:0,dragging:false,touchEnded:false,settle:0,
+       metro:false,mStart:0,dotOn:false,raf:0,wake:null,hinted:false,lastSec:-1,sx:0,sy:0,st:0,multi:false,
+       z:1,pinch:null,pz:null,pzRaf:0,edgeL:true,edgeR:true};
+function cur(){return byId(P.list.songIds[P.idx]);}
+function maxScroll(){return Math.max(0,chart.scrollHeight-chart.clientHeight);}
+
+function openPerform(list,idx){
+  P.list=list;show("perform");loadSong(idx,0);requestWake();
+  cancelAnimationFrame(P.raf);P.raf=requestAnimationFrame(loop);
+  if(!P.hinted){P.hinted=true;var h=$("#hint");h.classList.add("show");setTimeout(function(){h.classList.remove("show");},3800);}
+}
+function leavePerform(){stopRun();stopMetro();cancelAnimationFrame(P.raf);releaseWake();renderSetlist();show("setlist");}
+
+function loadSong(idx,dir){
+  stopRun();stopMetro();P.idx=idx;var s=cur(),n=P.list.songIds.length;
+  pagesEl.innerHTML="";
+  if(s.pdf){s.pdf.forEach(function(c){var w=document.createElement("div");w.className="pdfpage";w.appendChild(c);pagesEl.appendChild(w);});}
+  else pagesEl.appendChild(samplePages(s));
+  P.z=s.zoom||1;applyWidth();updateChip();chart.scrollLeft=0;chart.scrollTop=0;P.pos=0;P.lastSec=-1;
+  $("#pTitle").textContent=s.title;
+  $("#pPos").textContent="Song "+(idx+1)+" of "+n+", "+P.list.name;
+  $("#pBpm").textContent=s.bpm;
+  var prev=idx>0?byId(P.list.songIds[idx-1]):null,next=idx<n-1?byId(P.list.songIds[idx+1]):null;
+  $("#pPrev").disabled=!prev;$("#pPrevT").textContent=prev?prev.title:"Start of set";
+  $("#pNext").disabled=!next;$("#pNextT").textContent=next?next.title:"End of set";
+  $("#pPrev").setAttribute("aria-label",prev?"Previous song: "+prev.title:"No previous song");
+  $("#pNext").setAttribute("aria-label",next?"Next song: "+next.title:"No next song");
+  updateTime();startMetro();
+  if(dir&&!reduce){chart.animate([{transform:"translateX("+(dir*48)+"px)",opacity:0},{transform:"none",opacity:1}],{duration:240,easing:"cubic-bezier(.2,.7,.3,1)"});}
+}
+function go(dir){
+  var n=P.list.songIds.length,t=P.idx+dir;
+  if(t<0||t>=n){if(!reduce)chart.animate([{transform:"none"},{transform:"translateX("+(-dir*18)+"px)"},{transform:"none"}],{duration:260,easing:"ease-out"});return;}
+  loadSong(t,dir);
+}
+function startRun(){
+  var s=cur();if(P.pos>=s.len-0.05){P.pos=0;chart.scrollTop=0;}
+  P.posStart=P.pos;P.tStart=performance.now();P.running=true;P.dragging=false;
+  var b=$("#pGo");b.textContent="Stop";b.classList.add("stop");
+}
+function stopRun(){P.running=false;var b=$("#pGo");b.textContent="Start";b.classList.remove("stop");}
+function startMetro(){P.metro=true;P.mStart=performance.now();$("#pMetro").setAttribute("aria-pressed","true");}
+function stopMetro(){P.metro=false;$("#pMetro").setAttribute("aria-pressed","false");setDot(false);}
+function setDot(on){P.dotOn=on;dot.classList.toggle("on",on);}
+function updateTime(){
+  var s=cur(),sec=Math.floor(P.pos);
+  $("#pBar").style.transform="scaleX("+Math.min(1,P.pos/s.len).toFixed(4)+")";
+  if(sec!==P.lastSec){P.lastSec=sec;$("#pTime").textContent=fmt(P.pos)+" / "+fmt(s.len);}
+}
+function loop(now){
+  if(P.running&&!P.dragging){
+    var s=cur();P.pos=P.posStart+(now-P.tStart)/1000;
+    var done=P.pos>=s.len;if(done)P.pos=s.len;
+    var m=maxScroll();if(m>0)chart.scrollTop=P.pos/s.len*m;
+    updateTime();
+    if(done)stopRun();
+  }
+  if(P.metro){
+    var beatLen=60000/cur().bpm,on=((now-P.mStart)%beatLen)<beatLen*0.5;
+    if(on!==P.dotOn)setDot(on);
+  }
+  P.raf=requestAnimationFrame(loop);
+}
+function syncFromScroll(){var m=maxScroll();if(m>0){P.pos=chart.scrollTop/m*cur().len;updateTime();}}
+function armSettle(){clearTimeout(P.settle);P.settle=setTimeout(function(){P.dragging=false;P.touchEnded=false;P.posStart=P.pos;P.tStart=performance.now();},180);}
+
+chart.addEventListener("scroll",function(){
+  if(P.dragging&&P.touchEnded)armSettle();
+  if(!P.running||P.dragging)syncFromScroll();
+},{passive:true});
+/* Zoom: pinch on iPad, pinch on a Mac trackpad */
+var ZMIN=0.5,ZMAX=3;
+function applyWidth(){pagesEl.style.width=Math.round(Math.min(chart.clientWidth-28,840)*P.z)+"px";}
+function updateChip(){$("#zoomChip").hidden=Math.abs(P.z-1)<0.03;$("#zoomPct").textContent=Math.round(P.z*100)+"%";}
+function zoomAt(z,cx,cy,a){
+  z=Math.min(ZMAX,Math.max(ZMIN,z));if(Math.abs(z-1)<0.04)z=1;
+  var r0=pagesEl.getBoundingClientRect();
+  a=a||{px:cx-r0.left,py:cy-r0.top,z0:P.z};
+  P.z=z;applyWidth();
+  var r1=pagesEl.getBoundingClientRect(),k=z/a.z0;
+  chart.scrollLeft+=r1.left-(cx-a.px*k);
+  chart.scrollTop+=r1.top-(cy-a.py*k);
+  cur().zoom=z;updateChip();
+}
+function tdist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);}
+function tmid(t){return {x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2};}
+chart.addEventListener("touchstart",function(e){
+  P.multi=e.touches.length>1;
+  if(e.touches.length===1){
+    P.sx=e.touches[0].clientX;P.sy=e.touches[0].clientY;P.st=performance.now();
+    var mx=chart.scrollWidth-chart.clientWidth;P.edgeL=chart.scrollLeft<=1;P.edgeR=chart.scrollLeft>=mx-1;
+  }
+  if(e.touches.length===2){var m=tmid(e.touches),r=pagesEl.getBoundingClientRect();P.pinch={d0:tdist(e.touches)||1,a:{px:m.x-r.left,py:m.y-r.top,z0:P.z}};}
+  if(P.running){P.dragging=true;P.touchEnded=false;clearTimeout(P.settle);}
+},{passive:true});
+chart.addEventListener("touchmove",function(e){
+  if(!P.pinch||e.touches.length!==2)return;
+  e.preventDefault();
+  var m=tmid(e.touches);P.pz={z:P.pinch.a.z0*tdist(e.touches)/P.pinch.d0,x:m.x,y:m.y,a:P.pinch.a};
+  if(!P.pzRaf)P.pzRaf=requestAnimationFrame(function(){P.pzRaf=0;var q=P.pz;if(q)zoomAt(q.z,q.x,q.y,q.a);});
+},{passive:false});
+chart.addEventListener("touchend",function(e){
+  if(e.touches.length<2){P.pinch=null;P.pz=null;}
+  if(P.running&&P.dragging){P.touchEnded=true;armSettle();}
+  if(P.multi||e.touches.length>0){if(e.touches.length===0)P.multi=false;return;}
+  var t=e.changedTouches[0],dx=t.clientX-P.sx,dy=t.clientY-P.sy,dt=performance.now()-P.st;
+  if(Math.abs(dx)>70&&Math.abs(dx)>2*Math.abs(dy)&&dt<700){
+    if(dx<0&&P.edgeR)go(1);else if(dx>0&&P.edgeL)go(-1);
+  }
+},{passive:true});
+chart.addEventListener("touchcancel",function(){P.pinch=null;P.pz=null;P.multi=false;if(P.running&&P.dragging){P.touchEnded=true;armSettle();}},{passive:true});
+chart.addEventListener("wheel",function(e){
+  if(e.ctrlKey){e.preventDefault();zoomAt(P.z*Math.exp(-e.deltaY*0.01),e.clientX,e.clientY);}
+  if(P.running){P.dragging=true;P.touchEnded=true;armSettle();}
+},{passive:false});
+document.addEventListener("gesturestart",function(e){e.preventDefault();});
+$("#zoomChip").addEventListener("click",function(){var r=chart.getBoundingClientRect();zoomAt(1,r.left+r.width/2,r.top+r.height/2);});
+window.addEventListener("resize",function(){if(view==="perform"){applyWidth();if(!P.running)syncFromScroll();}});
+
+$("#pGo").addEventListener("click",function(){P.running?stopRun():startRun();});
+$("#pMetro").addEventListener("click",function(){P.metro?stopMetro():startMetro();});
+$("#pPrev").addEventListener("click",function(){go(-1);});
+$("#pNext").addEventListener("click",function(){go(1);});
+$("#pBack").addEventListener("click",leavePerform);
+$("#pEdit").addEventListener("click",function(){openEditor(cur());});
+document.addEventListener("keydown",function(e){
+  if(view!=="perform"||!$("#sheet").hidden)return;
+  if(e.key==="ArrowRight"){e.preventDefault();go(1);}
+  else if(e.key==="ArrowLeft"){e.preventDefault();go(-1);}
+  else if(e.key===" "&&e.target===document.body){e.preventDefault();$("#pGo").click();}
+});
+
+/* ---------- Keep screen awake ---------- */
+function setWake(on,text){var b=$("#pWake");b.classList.toggle("on",on);$("#pWakeT").textContent=text;}
+function requestWake(){
+  if(!("wakeLock" in navigator)){setWake(false,"Screen may sleep");return;}
+  navigator.wakeLock.request("screen").then(function(w){
+    P.wake=w;setWake(true,"Screen stays on");
+    w.addEventListener("release",function(){if(P.wake===w){P.wake=null;setWake(false,"Screen may sleep");}});
+  }).catch(function(){setWake(false,"Screen may sleep");});
+}
+function releaseWake(){if(P.wake){var w=P.wake;P.wake=null;w.release().catch(function(){});}}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&view==="perform"&&!P.wake)requestWake();});
+$("#pWake").addEventListener("click",function(){if(!P.wake)requestWake();});
+
+/* ---------- Song settings ---------- */
+var editing=null,pendingPdf=null;
+function openEditor(s){
+  editing=s;pendingPdf=null;
+  $("#fTitle").value=s.title;$("#fBpm").value=s.bpm;
+  $("#fMin").value=Math.floor(s.len/60);$("#fSec").value=String(s.len%60).padStart(2,"0");
+  $("#fPdf").value="";
+  $("#pdfStatus").textContent= s.pdf ? "Using your PDF ("+s.pages+(s.pages===1?" page).":" pages).") : "Using a sample chart.";
+  $("#sheet").hidden=false;
+}
+function closeEditor(){$("#sheet").hidden=true;editing=null;pendingPdf=null;}
+function clampInt(v,lo,hi,fb){v=parseInt(v,10);if(isNaN(v))return fb;return Math.min(hi,Math.max(lo,v));}
+$("#bpmDown").addEventListener("click",function(){$("#fBpm").value=clampInt($("#fBpm").value,30,300,120)-1;});
+$("#bpmUp").addEventListener("click",function(){$("#fBpm").value=clampInt($("#fBpm").value,30,300,120)+1;});
+$("#sCancel").addEventListener("click",closeEditor);
+$("#sheet").addEventListener("click",function(e){if(e.target===this)closeEditor();});
+$("#sSave").addEventListener("click",function(){
+  var s=editing;if(!s)return;
+  var t=$("#fTitle").value.trim();if(t)s.title=t;
+  s.bpm=clampInt($("#fBpm").value,30,300,s.bpm);
+  var len=clampInt($("#fMin").value,0,59,0)*60+clampInt($("#fSec").value,0,59,0);
+  s.len=Math.max(10,len||s.len);
+  if(pendingPdf){s.pdf=pendingPdf;s.pages=pendingPdf.length;}
+  closeEditor();renderLibrary();if(curList)renderSetlist();
+  if(view==="perform"&&cur()===s)loadSong(P.idx,0);
+});
+
+var pdfLib=null;
+function loadPdfJs(){
+  if(pdfLib)return Promise.resolve(pdfLib);
+  return new Promise(function(res,rej){
+    var sc=document.createElement("script");
+    sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    sc.onload=function(){var l=window.pdfjsLib;if(!l){rej(new Error("no lib"));return;}
+      l.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";pdfLib=l;res(l);};
+    sc.onerror=function(){rej(new Error("load failed"));};
+    document.head.appendChild(sc);
+  });
+}
+function renderPdf(file){
+  return Promise.all([loadPdfJs(),file.arrayBuffer()]).then(function(r){
+    return r[0].getDocument({data:r[1]}).promise;
+  }).then(function(doc){
+    var out=[],i=1;
+    function next(){
+      if(i>doc.numPages)return Promise.resolve(out);
+      return doc.getPage(i++).then(function(page){
+        var v=page.getViewport({scale:1}),vp=page.getViewport({scale:1600/v.width});
+        var c=document.createElement("canvas");c.width=Math.round(vp.width);c.height=Math.round(vp.height);
+        return page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise.then(function(){out.push(c);return next();});
+      });
+    }
+    return next();
+  });
+}
+$("#fPdf").addEventListener("change",function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  var st=$("#pdfStatus");st.textContent="Opening "+f.name+"…";
+  renderPdf(f).then(function(c){pendingPdf=c;st.textContent="Ready: "+f.name+", "+c.length+(c.length===1?" page.":" pages.")+" Save changes to use it.";})
+  .catch(function(){pendingPdf=null;st.textContent="That PDF didn’t open in this mockup. The real app will open PDFs offline, without this step.";});
+});
+
+renderLibrary();
+})();
+</script>
+</body>
+</html>
