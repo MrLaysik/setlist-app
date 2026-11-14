@@ -11,7 +11,7 @@ import {
 } from "./setlist-view.js";
 import { askName } from "./setlist-dialogs.js";
 
-const APP_VERSION = "0.3.1";
+const APP_VERSION = "0.3.2";
 const TAB_KEY = "setlist.tab";
 
 const state = {
@@ -234,8 +234,11 @@ function wire() {
       toast(err.message, { error: true });
     }
   });
-  // Block the browser's own pinch-zoom of the whole page.
-  document.addEventListener("gesturestart", (e) => e.preventDefault());
+  // Block Safari's own pinch-zoom of the whole page, at every stage of the
+  // gesture (CSS touch-action does most of the work; this is the backup).
+  for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+    document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+  }
 }
 
 async function start() {

@@ -65,6 +65,10 @@
 /* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Touches may scroll but never zoom the page (no pinch, no double-tap zoom).
+   The chart gets its own pinch zoom in Milestone 6. */
+html, body { touch-action: pan-x pan-y; }
+
 html { height: 100%; background: var(--bg); }
 html.stage, html.stage body { background: var(--stage-bg); }
 
@@ -274,6 +278,7 @@ html.stage #app { padding-top: 0; }
 .chart {
   flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain; padding: 18px 14px 22px;
+  touch-action: pan-x pan-y; /* scroll only; Safari must not zoom the page from here */
 }
 .pages { display: flex; flex-direction: column; gap: 14px; margin: 0 auto; width: min(100%, 840px); }
 .pdfpage { width: 100%; background: var(--paper); border-radius: 3px; overflow: hidden; flex: none; }
