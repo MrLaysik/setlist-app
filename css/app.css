@@ -274,6 +274,28 @@ html.stage #app { padding-top: 0; padding-bottom: 0; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .icon-btn { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; color: var(--stage-ink-2); }
+/* Metronome: BPM plus a solid on/off dot. When it's off, the dot is an empty ring. */
+.metro {
+  display: flex; align-items: center; gap: 12px; flex: none;
+  min-height: 68px; padding: 0 4px 0 18px; margin-left: 4px;
+  border-radius: 999px; background: var(--stage-surface-2); color: var(--stage-ink);
+}
+.bpm {
+  display: flex; align-items: baseline; gap: 4px;
+  font-family: var(--display); font-weight: 700; font-size: 28px; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.bpm small { font-size: 14px; font-weight: 600; color: var(--stage-ink-2); }
+.dot { width: 60px; height: 60px; border-radius: 50%; background: var(--dot-off); flex: none; }
+.dot.on { background: var(--amber); }
+.metro[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 3px var(--dot-off); }
+.metro[aria-pressed="false"] .bpm { color: var(--stage-ink-2); }
+.metro:disabled { opacity: .4; }
+@media (max-width: 640px) {
+  .metro { min-height: 56px; padding-left: 14px; gap: 10px; }
+  .bpm { font-size: 24px; }
+  .dot { width: 48px; height: 48px; }
+}
 #perform { position: relative; }
 .chart-area { flex: 1; min-height: 0; position: relative; display: flex; }
 .chart-area .chart { flex: 1; min-width: 0; }

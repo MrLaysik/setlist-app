@@ -12,6 +12,7 @@
 import { $, fmtTime } from "./ui.js";
 import { getAllSongs, getPdf } from "./db.js";
 import { showChart } from "./charts.js";
+import { createMetronome } from "./metronome.js";
 
 const SETTLE_MS = 180;      // quiet time after a touch/momentum before the clock resumes
 const SWIPE_MIN_PX = 70;    // a swipe must travel at least this far sideways…
@@ -48,6 +49,7 @@ const P = {
 };
 
 let handlers = {};      // { onBack(), onEditSong(song) }
+let metro = null;       // the visual metronome (see metronome.js)
 
 const chart = () => $("#chart");
 const maxScroll = () => Math.max(0, chart().scrollHeight - chart().clientHeight);
@@ -77,7 +79,7 @@ function updateLabels() {
   $("#pTitle").textContent = s ? s.title : "";
   $("#pPos").textContent = P.listName
     ? `Song ${P.idx + 1} of ${n}, ${P.listName}`
-    : s ? `Song preview, ${s.bpm} BPM` : "";
+    : s ? "Song preview" : "";
 
   const prev = P.idx > 0 ? P.songs.get(P.songIds[P.idx - 1]) : null;
   const next = P.idx < n - 1 ? P.songs.get(P.songIds[P.idx + 1]) : null;
@@ -129,6 +131,7 @@ export function toggleRun() {
 
 function loop(now) {
   if (!P.open) return;
+  metro.tick(now);
   if (P.running && !P.interacting) {
     const len = lengthOf();
     P.pos = Math.min(len, P.posStart + (now - P.tStart) / 1000);
@@ -215,6 +218,9 @@ async function loadSong(idx, dir = 0) {
   animateChange(dir);
 
   const song = P.song;
+  // Every song load (including song changes) starts the metronome at beat one.
+  if (song) metro.start(song.bpm);
+  else metro.stop();
   if (!song) {
     message("This song isn't in your library anymore.");
     return;
@@ -277,6 +283,7 @@ export async function openPerform({ listName = null, songIds, index = 0 }) {
   if (!P.songIds.length) {
     P.songIds = [];
     P.song = null;
+    metro.stop();
     updateLabels();
     message("There are no songs to show.");
   } else {
@@ -293,6 +300,7 @@ export function closePerform() {
   cancelAnimationFrame(P.raf);
   clearTimeout(P.settleTimer);
   stopRun();
+  metro.stop();
   teardownChart();
   message(null);
   $("#hint").classList.remove("show");
@@ -408,6 +416,8 @@ function onResize() {
 /** Wire up the view. Call once at startup. callbacks: { onBack(), onEditSong(song) } */
 export function initPerform(callbacks) {
   handlers = callbacks;
+  metro = createMetronome({ button: $("#pMetro"), dot: $("#pDot"), bpmText: $("#pBpm") });
+  $("#pMetro").addEventListener("click", () => metro.toggle());
   const c = chart();
   c.addEventListener("touchstart", onTouchStart, { passive: true });
   c.addEventListener("touchmove", onTouchMove, { passive: true });

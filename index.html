@@ -128,6 +128,10 @@
       <button class="icon-btn" id="pBack" aria-label="Back"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="p-title"><h2 id="pTitle"></h2><div class="pos" id="pPos"></div></div>
       <button class="icon-btn" id="pEdit" aria-label="Song settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button>
+      <button class="metro" id="pMetro" aria-pressed="false" aria-label="Metronome">
+        <span class="bpm"><span id="pBpm">–</span><small>BPM</small></span>
+        <span class="dot" id="pDot" aria-hidden="true"></span>
+      </button>
     </header>
     <div class="chart-area">
       <div class="chart" id="chart">
@@ -135,7 +139,7 @@
         <div class="pages" id="pages"></div>
       </div>
     </div>
-    <div class="hint" id="hint" role="status">Swipe left or right to change songs.</div>
+    <div class="hint" id="hint" role="status">Swipe left or right to change songs.<br>Tap the dot to stop or start the metronome.</div>
     <footer class="p-bottom">
       <button class="nav prev" id="pPrev"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="nav-txt"><span class="lbl">Previous</span><span class="nt" id="pPrevT"></span></span></button>
       <div class="center">
