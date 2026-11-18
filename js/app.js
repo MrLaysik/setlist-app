@@ -13,7 +13,7 @@ import {
 } from "./setlist-view.js";
 import { askName } from "./setlist-dialogs.js";
 
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.6.0";
 const TAB_KEY = "setlist.tab";
 
 const state = {

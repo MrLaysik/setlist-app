@@ -300,6 +300,18 @@ html.stage #app { padding-top: 0; padding-bottom: 0; }
 .chart-area { flex: 1; min-height: 0; position: relative; display: flex; }
 .chart-area .chart { flex: 1; min-width: 0; }
 
+/* Shown whenever the chart isn't at 100%. */
+.zoomchip {
+  position: absolute; right: 16px; bottom: 16px;
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 52px; padding: 0 20px; border-radius: 999px;
+  background: var(--stage-surface-2); color: var(--stage-ink);
+  font-weight: 600; font-size: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+}
+.zoomchip[hidden] { display: none; }
+#zoomPct { color: var(--amber); font-variant-numeric: tabular-nums; }
+
 /* Bottom bar: previous, Start/Stop with progress, next. Its color runs down
    behind the home indicator; its content stays above it. */
 .p-bottom {

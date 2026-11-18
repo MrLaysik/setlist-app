@@ -9,8 +9,8 @@
 // any momentum, then carries on from the new spot at the same pace. When it's
 // stopped, scrolling by hand moves `pos`, so Start continues from there.
 
-import { $, fmtTime } from "./ui.js";
-import { getAllSongs, getPdf } from "./db.js";
+import { $, fmtTime, toast } from "./ui.js";
+import { getAllSongs, getPdf, saveSongZoom } from "./db.js";
 import { showChart } from "./charts.js";
 import { createMetronome } from "./metronome.js";
 
@@ -19,6 +19,13 @@ const SWIPE_MIN_PX = 70;    // a swipe must travel at least this far sideways…
 const SWIPE_MAX_MS = 700;   // …within this long…
 const SWIPE_RATIO = 2;      // …and be at least twice as wide as it is tall
 const HINT_MS = 3800;
+
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_SNAP = 0.06;     // within 6% of 100% snaps to exactly 100%
+const MAX_PAGE_WIDTH = 840; // page width at 100% on a big screen (as in the mockup)
+const REDRAW_MS = 220;      // redraw sharp this long after zooming stops
+const ZOOM_SAVE_MS = 600;   // save the song's zoom this long after zooming stops
 
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -43,9 +50,20 @@ const P = {
   lastSec: -1,
 
   touch: null,          // swipe tracking for the current touch
+  fingers: 0,           // fingers currently on the chart
   hinted: false,
-  lastWidth: 0,
   resizeTimer: 0,
+
+  zoom: 1,
+  pinch: null,          // { d0, z0, anchor } while two fingers are pinching
+  pinchNext: null,      // latest pinch values, applied once per frame
+  pinchFrame: 0,
+  gesture: null,        // Mac Safari trackpad pinch
+  wheelZoom: 1,         // Mac ctrl+wheel: unsnapped zoom, so it can move off 100%
+  wheelAt: 0,
+  redrawTimer: 0,
+  zoomSave: null,       // { id, zoom } waiting to be saved
+  zoomSaveTimer: 0,
 };
 
 let handlers = {};      // { onBack(), onEditSong(song) }
@@ -176,6 +194,101 @@ function endInteraction() {
   armSettle();
 }
 
+// ---------- Zoom ----------
+//
+// Zoom changes the real width of the pages (not a CSS transform), so the
+// scroll math above keeps working unchanged. While zooming, the existing
+// page images just stretch; once zooming stops, they're redrawn sharp.
+
+/** Page width at 100%: the chart's width, up to MAX_PAGE_WIDTH. */
+function baseWidth() {
+  const c = chart();
+  const cs = getComputedStyle(c);
+  const inner = c.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  return Math.max(100, Math.min(inner, MAX_PAGE_WIDTH));
+}
+
+function applyWidth() {
+  $("#pages").style.width = `${Math.round(baseWidth() * P.zoom)}px`;
+}
+
+function clampZoom(z, snap = true) {
+  z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+  return snap && Math.abs(z - 1) < ZOOM_SNAP ? 1 : z;
+}
+
+function updateZoomChip() {
+  const chip = $("#zoomChip");
+  chip.hidden = P.zoom === 1 || !P.ctrl;
+  $("#zoomPct").textContent = `${Math.round(P.zoom * 100)}%`;
+}
+
+/** What's under the screen point (x, y), as a page plus a fraction of it. */
+function anchorAt(x, y) {
+  let best = null;
+  let bestD = Infinity;
+  for (const el of $("#pages").children) {
+    const r = el.getBoundingClientRect();
+    const d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+    if (d < bestD) { best = el; bestD = d; }
+    if (d === 0) break;
+  }
+  if (!best) return null;
+  const r = best.getBoundingClientRect();
+  return { el: best, fx: (x - r.left) / r.width, fy: (y - r.top) / r.height };
+}
+
+/**
+ * Zoom to `z`, keeping the anchored point of the chart under screen point
+ * (x, y). During a pinch the anchor stays fixed, so moving both fingers pans.
+ */
+function zoomTo(z, x, y, anchor = anchorAt(x, y), snap = true) {
+  if (!P.ctrl || !P.song) return;
+  P.zoom = clampZoom(z, snap);
+  applyWidth();
+  if (anchor && anchor.el.isConnected) {
+    const r = anchor.el.getBoundingClientRect();
+    const c = chart();
+    c.scrollLeft += r.left + anchor.fx * r.width - x;
+    c.scrollTop += r.top + anchor.fy * r.height - y;
+  }
+  updateZoomChip();
+  scheduleRedraw();
+  P.song.zoom = P.zoom;
+  scheduleZoomSave();
+}
+
+function zoomAtCenter(z) {
+  const r = chart().getBoundingClientRect();
+  zoomTo(z, r.left + r.width / 2, r.top + r.height / 2);
+}
+
+function scheduleRedraw() {
+  clearTimeout(P.redrawTimer);
+  P.redrawTimer = setTimeout(() => {
+    if (P.ctrl) P.ctrl.redraw().catch((err) => message(err.message));
+  }, REDRAW_MS);
+}
+
+function scheduleZoomSave() {
+  P.zoomSave = { id: P.song.id, zoom: Math.round(P.zoom * 100) / 100 };
+  clearTimeout(P.zoomSaveTimer);
+  P.zoomSaveTimer = setTimeout(flushZoomSave, ZOOM_SAVE_MS);
+}
+
+/** Save a pending zoom now. Never fails silently. */
+async function flushZoomSave() {
+  clearTimeout(P.zoomSaveTimer);
+  const pending = P.zoomSave;
+  P.zoomSave = null;
+  if (!pending) return;
+  try {
+    await saveSongZoom(pending.id, pending.zoom);
+  } catch (err) {
+    toast(err.message, { error: true });
+  }
+}
+
 // ---------- Songs ----------
 
 function teardownChart() {
@@ -201,15 +314,23 @@ function bounce(dir) {
 
 async function loadSong(idx, dir = 0) {
   const my = ++P.loadToken;
+  flushZoomSave();
   stopRun();
   clearTimeout(P.settleTimer);
+  clearTimeout(P.redrawTimer);
   P.interacting = false;
   P.touchEnded = false;
+  P.pinch = null;
+  P.gesture = null;
   teardownChart();
   P.idx = idx;
   P.song = P.songs.get(P.songIds[idx]) || null;
   P.pos = 0;
   P.lastSec = -1;
+  // Each song opens at its own saved zoom.
+  P.zoom = clampZoom(Number(P.song && P.song.zoom) || 1);
+  applyWidth();
+  updateZoomChip();
   const c = chart();
   c.scrollTop = 0;
   c.scrollLeft = 0;
@@ -240,7 +361,7 @@ async function loadSong(idx, dir = 0) {
     const ctrl = await showChart($("#pages"), pdf.data);
     if (my !== P.loadToken) { ctrl.destroy(); return; }
     P.ctrl = ctrl;
-    P.lastWidth = $("#pages").clientWidth;
+    updateZoomChip();
     ctrl.ready.catch((err) => { if (my === P.loadToken) message(err.message); });
   } catch (err) {
     if (my === P.loadToken) {
@@ -297,8 +418,13 @@ export async function openPerform({ listName = null, songIds, index = 0 }) {
 export function closePerform() {
   P.open = false;
   P.loadToken++;
+  flushZoomSave();
   cancelAnimationFrame(P.raf);
+  cancelAnimationFrame(P.pinchFrame);
+  P.pinch = null;
+  P.gesture = null;
   clearTimeout(P.settleTimer);
+  clearTimeout(P.redrawTimer);
   stopRun();
   metro.stop();
   teardownChart();
@@ -317,6 +443,7 @@ export function currentSong() {
 /** After the current song was edited: reload it from storage and redraw. */
 export async function reloadCurrentSong() {
   if (!P.open) return;
+  await flushZoomSave(); // so the reload below sees the latest zoom
   P.songs = new Map((await getAllSongs()).map((s) => [s.id, s]));
   await loadSong(P.idx, 0);
 }
@@ -338,29 +465,51 @@ export async function songDeleted(id) {
 
 // ---------- Input ----------
 
+const fingerGap = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+const fingerMid = (t) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+
 function onTouchStart(e) {
+  P.fingers = e.touches.length;
   if (e.touches.length === 1) {
     const c = chart();
     const t = e.touches[0];
     const maxX = c.scrollWidth - c.clientWidth;
     P.touch = {
       x: t.clientX, y: t.clientY, t: performance.now(), multi: false,
-      // When zoomed wider than the screen (Milestone 6), a swipe only changes
-      // songs if the chart is already at that edge; otherwise it pans.
+      // When zoomed wider than the screen, a swipe only changes songs if the
+      // chart is already at that edge; otherwise it pans.
       edgeL: c.scrollLeft <= 1,
       edgeR: c.scrollLeft >= maxX - 1,
     };
   } else if (P.touch) {
     P.touch.multi = true;
   }
+  if (e.touches.length === 2 && P.ctrl) {
+    const m = fingerMid(e.touches);
+    P.pinch = { d0: fingerGap(e.touches) || 1, z0: P.zoom, anchor: anchorAt(m.x, m.y) };
+  }
 }
 
-function onTouchMove() {
+function onTouchMove(e) {
   // Only real movement pauses the clock; a plain tap doesn't.
   if (!P.interacting) beginInteraction();
+  if (!P.pinch || e.touches.length !== 2) return;
+  // Two fingers: this is ours, not the browser's scroll.
+  e.preventDefault();
+  const m = fingerMid(e.touches);
+  P.pinchNext = { z: (P.pinch.z0 * fingerGap(e.touches)) / P.pinch.d0, x: m.x, y: m.y };
+  if (!P.pinchFrame) {
+    P.pinchFrame = requestAnimationFrame(() => {
+      P.pinchFrame = 0;
+      const q = P.pinchNext;
+      if (q && P.pinch) zoomTo(q.z, q.x, q.y, P.pinch.anchor);
+    });
+  }
 }
 
 function onTouchEnd(e) {
+  P.fingers = e.touches.length;
+  if (e.touches.length < 2) { P.pinch = null; P.pinchNext = null; }
   if (e.touches.length > 0) return; // wait until every finger is up
   endInteraction();
   const s = P.touch;
@@ -381,10 +530,44 @@ function onScroll() {
   if (!P.running || P.interacting) syncFromScroll();
 }
 
-function onWheel() {
+function onWheel(e) {
+  if (e.ctrlKey) {
+    // Trackpad pinch in Chrome (and ctrl + scroll wheel): zoom, not page zoom.
+    e.preventDefault();
+    const now = performance.now();
+    // Track an unsnapped zoom while the pinch lasts, so small steps can
+    // move off 100% instead of snapping straight back to it.
+    if (now - P.wheelAt > 300) P.wheelZoom = P.zoom;
+    P.wheelAt = now;
+    P.wheelZoom = clampZoom(P.wheelZoom * Math.exp(-e.deltaY * 0.01), false);
+    zoomTo(P.wheelZoom, e.clientX, e.clientY);
+  }
   // Mac trackpad or mouse wheel: treat like a touch that has already ended.
   if (!P.running) return;
   beginInteraction();
+  endInteraction();
+}
+
+// Trackpad pinch in Mac Safari arrives as gesture events instead. On the
+// iPad those fire too, alongside the touches handled above, so ignore them
+// whenever a finger is on the chart.
+function onGestureStart(e) {
+  if (P.fingers > 0 || !P.ctrl) return;
+  const r = chart().getBoundingClientRect();
+  const x = e.clientX ?? r.left + r.width / 2;
+  const y = e.clientY ?? r.top + r.height / 2;
+  P.gesture = { z0: P.zoom, x, y, anchor: anchorAt(x, y) };
+  beginInteraction();
+}
+
+function onGestureChange(e) {
+  if (!P.gesture || P.fingers > 0) return;
+  zoomTo(P.gesture.z0 * e.scale, P.gesture.x, P.gesture.y, P.gesture.anchor);
+}
+
+function onGestureEnd() {
+  if (!P.gesture) return;
+  P.gesture = null;
   endInteraction();
 }
 
@@ -400,16 +583,13 @@ function onResize() {
   clearTimeout(P.resizeTimer);
   P.resizeTimer = setTimeout(() => {
     if (!P.open) return;
+    applyWidth(); // 100% follows the screen width, so rotating re-fits
     // Keep your place: put the chart back at the same point in the song.
     if (!P.running) {
       const m = maxScroll();
       if (m > 0) chart().scrollTop = (P.pos / lengthOf()) * m;
     }
-    const w = $("#pages").clientWidth;
-    if (P.ctrl && w && w !== P.lastWidth) {
-      P.lastWidth = w;
-      P.ctrl.redraw().catch((err) => message(err.message));
-    }
+    scheduleRedraw();
   }, 150);
 }
 
@@ -420,11 +600,16 @@ export function initPerform(callbacks) {
   $("#pMetro").addEventListener("click", () => metro.toggle());
   const c = chart();
   c.addEventListener("touchstart", onTouchStart, { passive: true });
-  c.addEventListener("touchmove", onTouchMove, { passive: true });
+  // Not passive: a two-finger pinch has to stop the browser's own handling.
+  c.addEventListener("touchmove", onTouchMove, { passive: false });
   c.addEventListener("touchend", onTouchEnd, { passive: true });
   c.addEventListener("touchcancel", onTouchEnd, { passive: true });
   c.addEventListener("scroll", onScroll, { passive: true });
-  c.addEventListener("wheel", onWheel, { passive: true });
+  c.addEventListener("wheel", onWheel, { passive: false });
+  c.addEventListener("gesturestart", onGestureStart);
+  c.addEventListener("gesturechange", onGestureChange);
+  c.addEventListener("gestureend", onGestureEnd);
+  $("#zoomChip").addEventListener("click", () => zoomAtCenter(1));
   // Mac: dragging the scrollbar with the mouse.
   c.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") beginInteraction(); });
   window.addEventListener("pointerup", (e) => { if (e.pointerType === "mouse") endInteraction(); });

@@ -159,6 +159,17 @@ export function saveSong(fields, newPdf = null) {
   });
 }
 
+/** Save a song's zoom. Does nothing if the song has been deleted meanwhile. */
+export function saveSongZoom(id, zoom) {
+  const now = Date.now();
+  return run(["songs", "meta"], "readwrite", "saving the zoom", async (s) => {
+    const song = await promisify(s.songs.get(id));
+    if (!song || song.zoom === zoom) return;
+    s.songs.put({ ...song, zoom, updatedAt: now });
+    await noteChange(s, now);
+  });
+}
+
 /** Delete a song, its PDF, and remove it from every setlist. */
 export function deleteSong(id) {
   const now = Date.now();

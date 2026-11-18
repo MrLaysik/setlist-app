@@ -5,6 +5,13 @@ const VENDOR = new URL("../vendor/pdfjs/", import.meta.url).href;
 
 // iPad Safari refuses to draw canvases above roughly 16.7 million pixels.
 const MAX_CANVAS_AREA = 16_000_000;
+// And all the pages together get a budget (about 256 MB of pixels), so a long
+// chart zoomed to 300% can't run the iPad out of memory. Past this, pages are
+// drawn a little less sharp instead.
+const MAX_TOTAL_AREA = 64_000_000;
+// A page already drawn sharper than needed is kept (no redraw) unless it's
+// more than this many times too big, which would just waste memory.
+const KEEP_SHARPER_UP_TO = 2;
 
 let libPromise = null;
 
@@ -107,15 +114,37 @@ export async function showChart(container, data) {
   let gen = 0;
   let destroyed = false;
 
+  /** How many pixels wide each page should be drawn at its current size. */
+  function targets() {
+    const dpr = window.devicePixelRatio || 1;
+    const want = pages.map((p) => {
+      const cssW = p.wrap.clientWidth;
+      const maxPx = Math.floor(Math.sqrt(MAX_CANVAS_AREA * (p.w / p.h)));
+      return Math.min(Math.round(cssW * dpr), maxPx);
+    });
+    const total = pages.reduce((sum, p, i) => sum + want[i] * want[i] * (p.h / p.w), 0);
+    const k = total > MAX_TOTAL_AREA ? Math.sqrt(MAX_TOTAL_AREA / total) : 1;
+    return want.map((px) => Math.floor(px * k));
+  }
+
+  /** Pages nearest the middle of the screen first, so what you're looking at sharpens first. */
+  function byDistanceFromView() {
+    const mid = window.innerHeight / 2;
+    const dist = (p) => {
+      const r = p.wrap.getBoundingClientRect();
+      return r.top <= mid && r.bottom >= mid ? 0 : Math.min(Math.abs(r.top - mid), Math.abs(r.bottom - mid));
+    };
+    return pages.map((p, i) => ({ p, i, d: dist(p) })).sort((a, b) => a.d - b.d);
+  }
+
   async function draw() {
     const my = ++gen;
-    for (const p of pages) {
+    const want = targets();
+    for (const { p, i } of byDistanceFromView()) {
       if (destroyed || my !== gen) return;
-      const cssW = p.wrap.clientWidth;
-      if (!cssW) continue;
-      const maxPx = Math.floor(Math.sqrt(MAX_CANVAS_AREA * (p.w / p.h)));
-      const pxW = Math.min(Math.round(cssW * (window.devicePixelRatio || 1)), maxPx);
-      if (p.canvas && p.drawnPx === pxW) continue;
+      const pxW = want[i];
+      if (!pxW) continue;
+      if (p.canvas && p.drawnPx >= pxW && p.drawnPx <= pxW * KEEP_SHARPER_UP_TO) continue;
 
       const viewport = p.page.getViewport({ scale: pxW / p.w });
       const canvas = document.createElement("canvas");
