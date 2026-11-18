@@ -10,7 +10,7 @@
 // VERSION must match APP_VERSION in js/app.js, and FILES must list every file
 // the app uses. Run `sh tools/check-sw.sh` before committing to check both.
 
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const CACHE = `setlist-${VERSION}`;
 
 const FILES = [

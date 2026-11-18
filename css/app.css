@@ -66,7 +66,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* Touches may scroll but never zoom the page (no pinch, no double-tap zoom).
-   The chart gets its own pinch zoom in Milestone 6. */
+   The chart has its own pinch zoom (js/perform.js). */
 html, body { touch-action: pan-x pan-y; }
 
 html { height: 100%; background: var(--bg); }
@@ -255,7 +255,12 @@ html.stage #app { padding-top: 0; padding-bottom: 0; }
 }
 
 /* ---------- Stage: chart view (always dark) ---------- */
-.stage { background: var(--stage-bg); color: var(--stage-ink); }
+.stage {
+  background: var(--stage-bg); color: var(--stage-ink);
+  /* A long press on stage must never select text or pop up the iOS
+     magnifier or callout menu mid-song. */
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
 .p-top {
   display: flex; align-items: center; gap: 8px;
   /* The bar's color runs up behind the status bar; its content starts below it. */
@@ -275,8 +280,8 @@ html.stage #app { padding-top: 0; padding-bottom: 0; }
 }
 /* Keep-awake indicator */
 .wake {
-  display: inline-flex; align-items: center; gap: 6px; flex: none;
-  min-height: 46px; padding: 0 10px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none;
+  min-height: 46px; min-width: 46px; padding: 0 10px; border-radius: 12px;
   font-size: 14px; color: var(--stage-ink-2); white-space: nowrap;
 }
 .wake.on { color: var(--amber); }

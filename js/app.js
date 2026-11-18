@@ -14,7 +14,7 @@ import {
 import { askName } from "./setlist-dialogs.js";
 import { startOffline, protectStorage } from "./offline.js";
 
-const APP_VERSION = "0.7.0";
+const APP_VERSION = "0.8.0";
 const TAB_KEY = "setlist.tab";
 
 const state = {
@@ -249,7 +249,7 @@ async function start() {
     onChanged: refreshLibrary,
   });
   initSetlistView({
-    // Milestone 4 turns this into the performance view; for now it opens the chart.
+    // Tapping a song in the running order (or "Start set") opens the performance view there.
     onPlay: (listId, index) => {
       const list = currentSetlist();
       if (list && list.songIds.length) playSetlist(list, index);
