@@ -13,6 +13,7 @@ import { $, fmtTime, toast } from "./ui.js";
 import { getAllSongs, getPdf, saveSongZoom } from "./db.js";
 import { showChart } from "./charts.js";
 import { createMetronome } from "./metronome.js";
+import { createWakeLock } from "./wake.js";
 
 const SETTLE_MS = 180;      // quiet time after a touch/momentum before the clock resumes
 const SWIPE_MIN_PX = 70;    // a swipe must travel at least this far sideways…
@@ -68,6 +69,7 @@ const P = {
 
 let handlers = {};      // { onBack(), onEditSong(song) }
 let metro = null;       // the visual metronome (see metronome.js)
+let wake = null;        // keep-awake (see wake.js)
 
 const chart = () => $("#chart");
 const maxScroll = () => Math.max(0, chart().scrollHeight - chart().clientHeight);
@@ -397,6 +399,9 @@ function showHint() {
  * opts: { listName (null for a preview), songIds, index }
  */
 export async function openPerform({ listName = null, songIds, index = 0 }) {
+  // First thing, while the tap that opened the view still counts: some
+  // browsers only grant the wake lock right after a tap.
+  wake.start();
   P.open = true;
   P.listName = listName;
   P.songs = new Map((await getAllSongs()).map((s) => [s.id, s]));
@@ -418,6 +423,7 @@ export async function openPerform({ listName = null, songIds, index = 0 }) {
 export function closePerform() {
   P.open = false;
   P.loadToken++;
+  wake.stop();
   flushZoomSave();
   cancelAnimationFrame(P.raf);
   cancelAnimationFrame(P.pinchFrame);
@@ -598,6 +604,7 @@ export function initPerform(callbacks) {
   handlers = callbacks;
   metro = createMetronome({ button: $("#pMetro"), dot: $("#pDot"), bpmText: $("#pBpm") });
   $("#pMetro").addEventListener("click", () => metro.toggle());
+  wake = createWakeLock({ button: $("#pWake"), text: $("#pWakeT") });
   const c = chart();
   c.addEventListener("touchstart", onTouchStart, { passive: true });
   // Not passive: a two-finger pinch has to stop the browser's own handling.

@@ -6,8 +6,10 @@ import {
   buildBackup, shareBackup, downloadBackup, canShareFile, readBackup, restoreBackup,
   describeLastBackup, hasUnbackedChanges, formatBytes, formatDate,
 } from "./backup.js";
+import { storageProtected, offlineReady } from "./offline.js";
 
 let appVersion = "";
+let installed = false;
 let ready = null;   // a built backup waiting to be saved
 let busy = false;
 let onDataChanged = () => {};
@@ -35,6 +37,25 @@ async function refreshStatus() {
   } catch (err) {
     $("#backupStatus").textContent = err.message;
   }
+  await Promise.all([renderStorage(), renderOffline()]);
+}
+
+async function renderStorage() {
+  const state = await storageProtected();
+  const [status, help] =
+    state === true ? ["Protected", "iPadOS won't clear your songs and charts to free up space."]
+    : state === false ? ["Not protected", installed
+        ? "If the iPad runs very low on space, iPadOS could clear the app's data. Keep regular backups."
+        : "Add Setlist to the home screen and open it from there to protect your songs and charts. Until then, keep regular backups."]
+    : ["Can't be protected", "This browser can't protect stored data. Keep regular backups."];
+  $("#storageStatus").textContent = status;
+  $("#storageHelp").textContent = help;
+}
+
+async function renderOffline() {
+  $("#offlineStatus").textContent = (await offlineReady(appVersion))
+    ? "Saved on this device: works with no connection."
+    : "Not saved for offline use yet. Open the app once with a connection, then check again.";
 }
 
 function renderReady() {
@@ -153,8 +174,9 @@ async function onRestorePick(e) {
 }
 
 /** Wire up the screen. Call once at startup. */
-export function initSettings({ version, versionText, onChanged }) {
+export function initSettings({ version, versionText, isInstalled, onChanged }) {
   appVersion = version;
+  installed = !!isInstalled;
   onDataChanged = onChanged || onDataChanged;
   $("#setVersion").textContent = versionText;
   $("#backupBtn").addEventListener("click", onBackup);

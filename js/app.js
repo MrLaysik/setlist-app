@@ -12,8 +12,9 @@ import {
   initSetlistView, openSetlist, refreshSetlist, startAddingSongs, describeSetlist, currentSetlist,
 } from "./setlist-view.js";
 import { askName } from "./setlist-dialogs.js";
+import { startOffline, protectStorage } from "./offline.js";
 
-const APP_VERSION = "0.6.0";
+const APP_VERSION = "0.7.0";
 const TAB_KEY = "setlist.tab";
 
 const state = {
@@ -244,6 +245,7 @@ async function start() {
   initSettings({
     version: APP_VERSION,
     versionText: `Version ${APP_VERSION}, running as ${isInstalled() ? "an installed app" : "a browser tab"}.`,
+    isInstalled: isInstalled(),
     onChanged: refreshLibrary,
   });
   initSetlistView({
@@ -275,6 +277,11 @@ async function start() {
   wire();
   show("library");
   renderLibrary();
+  // Save a full copy for offline use, and watch for new versions.
+  startOffline();
+  // Ask the iPad not to clear our data when space runs low. (Safari decides
+  // on its own; there's no prompt. Settings shows the result.)
+  protectStorage();
   try {
     await openDb();
   } catch (err) {

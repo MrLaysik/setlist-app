@@ -273,6 +273,14 @@ html.stage #app { padding-top: 0; padding-bottom: 0; }
   color: var(--stage-ink-2); font-size: 14px; margin-top: 5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Keep-awake indicator */
+.wake {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  min-height: 46px; padding: 0 10px; border-radius: 12px;
+  font-size: 14px; color: var(--stage-ink-2); white-space: nowrap;
+}
+.wake.on { color: var(--amber); }
+@media (max-width: 640px) { .wake span { display: none; } }
 .icon-btn { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; color: var(--stage-ink-2); }
 /* Metronome: BPM plus a solid on/off dot. When it's off, the dot is an empty ring. */
 .metro {
@@ -412,3 +420,14 @@ dialog::backdrop { background: rgba(20, 24, 34, .45); }
   background: var(--ink); color: var(--bg); font-size: 16px; line-height: 1.4; text-align: center;
 }
 .toast.error { background: var(--danger); color: var(--danger-ink); }
+
+/* New version waiting. Hidden on stage so it can't be tapped mid-song. */
+.update-banner {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
+  bottom: calc(var(--safe-bottom) + 20px);
+  min-height: 50px; padding: 0 24px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 600; font-size: 16px; white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+}
+.update-banner[hidden], html.stage .update-banner { display: none; }
